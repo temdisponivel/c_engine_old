@@ -6,7 +6,7 @@
 #define CYNICAL_ENGINE_CPP_GRAPHICS_H
 
 #include <engine.h>
-#include <io.h>
+#include <utilities.h>
 #include "collections.h"
 #include "stb_image.h"
 #include <collections.h>
@@ -32,6 +32,14 @@
 #define TEXTURE_8 TEXTURE_8
 #define TEXTURE_9 TEXTURE_9
 
+typedef struct model {
+    list<int> *indices;
+    list<float> *positions;
+    list<float> *colors;
+    list<float> *tex_coords;
+    list<float> *normals;
+} model_t;
+
 typedef struct mesh {
     uint vao_handle;
 
@@ -41,15 +49,9 @@ typedef struct mesh {
     uint vertex_normal_handle;
 
     uint indices_handle;
-} mesh_t;
 
-typedef struct model {
-    list<int> *indices;
-    list<float> *positions;
-    list<float> *colors;
-    list<float> *tex_coords;
-    list<float> *normals;
-} model_t;
+    model_t *model;
+} mesh_t;
 
 enum IMAGE_CHANNELS {
     RGB = 3,
@@ -133,14 +135,14 @@ typedef union uniform_values_union {
 } uniform_values_union_t;
 
 typedef struct uniform_definition {
-    std::string *name;
+    char *name;
     UNIFORM_TYPE type;
     uniform_values_union_t default_value;
 } uniform_definition_t;
 
 typedef struct uniform {
     uint handle;
-    std::string *name;
+    int name_hash;
     UNIFORM_TYPE type;
     uniform_values_union_t current_value;
 } uniform_t;
@@ -162,14 +164,10 @@ typedef struct shader_program {
     shader_t fragment_shader;
 } shader_program_t;
 
-typedef struct material_definition {
-    list<uniform_definition_t> *uniforms_definitions;
-} material_defition_t;
-
-typedef struct material_instance {
+typedef struct material {
     shader_program_t *shader;
     list<uniform_t> *uniforms;
-} material_instance_t;
+} material_t;
 
 namespace gl {
     image_t *create_image(const char *image_file_path);
@@ -198,6 +196,22 @@ namespace gl {
     );
 
     void destroy_shader_program(shader_program_t *shader);
+
+    uniform_t *create_uniform(uint handle, const char *name, UNIFORM_TYPE type, uniform_values_union_t value);
+    void destroy_uniform(uniform_t *uniform);
+
+    material_t *create_material(
+            shader_program_t *shader,
+            list<uniform_definition_t> *uniform_definitions
+    );
+
+    void destroy_material(material_t *material);
+
+    void buff_uniform(uniform_t uniform);
+    void buff_uniforms(list<uniform_t> *uniforms);
+
+    void use_material(material_t *material);
+    void draw_mesh(mesh_t *mesh);
 }
 
 #endif //CYNICAL_ENGINE_CPP_GRAPHICS_H

@@ -2,9 +2,9 @@
 // Created by temdisponivel on 10/02/2018.
 //
 
+#include "graphics.h"
 #include <log.h>
 #include <cstring>
-#include "graphics.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
@@ -331,6 +331,7 @@ mesh_t *gl::create_mesh(model_t *model) {
     glBindVertexArray(0);
 
     mesh_t *mesh = (mesh_t *) memalloc(sizeof(mesh_t));
+    mesh->model = model;
     mesh->indices_handle = indices_vbo;
     mesh->vertex_position_handle = position_vbo;
     mesh->vertex_color_handle = color_vbo;
@@ -419,4 +420,161 @@ shader_program_t *gl::create_shader_program(
 void gl::destroy_shader_program(shader_program_t *shader) {
     glDeleteProgram(shader->handle);
     memfree(shader);
+}
+
+material_t *gl::create_material(
+        shader_program_t *shader,
+        list<uniform_definition_t> *uniform_definitions
+) {
+    material_t *material = (material_t *) memalloc(sizeof(material_t));
+    material->shader = shader;
+
+    list<uniform_t> *uniforms = lists::create<uniform_t>(uniform_definitions->length);
+    for (int i = 0; i < uniform_definitions->length; ++i) {
+        uniform_definition_t uniform_def = uniform_definitions->items[i];
+        uniform_t uniform = {};
+
+        int handle = glGetUniformLocation(shader->handle, uniform_def.name);
+        if (handle < 0) {
+            WARNINGF("UNIFORM '{0}' NOT FOUND!", uniform.name_hash);
+            handle = 0;
+        }
+
+        uniform.handle = (uint) handle;
+        uniform.name_hash = hash(uniform_def.name);
+        uniform.type = uniform_def.type;
+        uniform.current_value = uniform.current_value;
+
+        lists::add(uniforms, uniform);
+    }
+
+    material->shader = shader;
+    material->uniforms = uniforms;
+}
+
+void gl::destroy_material(material_t *material) {
+    lists::destroy(material->uniforms);
+    memfree(material);
+}
+
+
+void gl::buff_uniform(uniform_t uniform) {
+
+    // The shader doesn't have the material uniform defined on the material file
+    if (uniform.handle < 0)
+        return;
+
+    switch (uniform.type) {
+
+        case UNIFORM_BOOLEAN:
+            glUniform1i(uniform.handle, uniform.current_value.bool_value);
+            break;
+        case UNIFORM_BYTE:
+            glUniform1i(uniform.handle, uniform.current_value.byte_value);
+            break;
+        case UNIFORM_UBYTE:
+            glUniform1ui(uniform.handle, uniform.current_value.ubyte_value);
+            break;
+        case UNIFORM_SHORT:
+            glUniform1i(uniform.handle, uniform.current_value.short_value);
+            break;
+        case UNIFORM_USHORT:
+            glUniform1ui(uniform.handle, uniform.current_value.ushort_value);
+            break;
+        case UNIFORM_INT:
+            glUniform1i(uniform.handle, uniform.current_value.int_value);
+            break;
+        case UNIFORM_UINT:
+            glUniform1ui(uniform.handle, uniform.current_value.uint_value);
+            break;
+        case UNIFORM_LONG:
+            glUniform1i(uniform.handle, uniform.current_value.long_value);
+            break;
+        case UNIFORM_FLOAT:
+            glUniform1f(uniform.handle, uniform.current_value.float_value);
+            break;
+        case UNIFORM_DOUBLE:
+            glUniform1d(uniform.handle, uniform.current_value.double_value);
+            break;
+        case UNIFORM_VEC2:
+            glUniform2fv(uniform.handle, 1, (const GLfloat *) &uniform.current_value.vector2_value);
+            break;
+        case UNIFORM_VEC3:
+            glUniform3fv(uniform.handle, 1, (const GLfloat *) &uniform.current_value.vector3_value);
+            break;
+        case UNIFORM_VEC4:
+            glUniform4fv(uniform.handle, 1, (const GLfloat *) &uniform.current_value.vector4_value);
+            break;
+        case UNIFORM_MAT4:
+            glUniformMatrix4fv(uniform.handle, 1, GL_FALSE, (const GLfloat *) &uniform.current_value.matrix_value);
+            break;
+        case UNIFORM_TEXTURE2D:
+            glActiveTexture(uniform.current_value.texture_value.texture_target_index);
+            glBindTexture(GL_TEXTURE_2D, uniform.current_value.texture_value.texture->handle);
+
+            // texture target index is GL_TEXTURE0, GL_TEXTURE1, GL_TEXTURE{X}
+            // But the parameter must be 0, 1, {x}. So we subtract the index from the GL_TEXTURE0
+            // to get only the "{x}"
+            glUniform1i(uniform.handle, uniform.current_value.texture_value.texture_target_index - GL_TEXTURE0);
+            break;
+    }
+}
+
+void gl::buff_uniforms(list<uniform_t> *uniforms) {
+    for (int i = 0; i < uniforms->length; ++i) {
+        buff_uniform(uniforms->items[i]);
+    }
+}
+
+void gl::use_material(material_t *material) {
+    glUseProgram(material->shader->handle);
+    buff_uniforms(material->uniforms);
+}
+
+void set_vbo_enable_state(mesh_t *mesh, bool state) {
+    if (mesh->vertex_position_handle > 0) {
+        if (state)
+            glEnableVertexAttribArray(mesh->vertex_position_handle);
+        else
+            glDisableVertexAttribArray(mesh->vertex_position_handle);
+    }
+
+    if (mesh->vertex_color_handle > 0) {
+        if (state)
+            glEnableVertexAttribArray(mesh->vertex_color_handle);
+        else
+            glDisableVertexAttribArray(mesh->vertex_color_handle);
+    }
+
+    if (mesh->vertex_tex_coord_handle > 0) {
+        if (state)
+            glEnableVertexAttribArray(mesh->vertex_tex_coord_handle);
+        else
+            glDisableVertexAttribArray(mesh->vertex_tex_coord_handle);
+    }
+
+    if (mesh->vertex_normal_handle > 0) {
+        if (state)
+            glEnableVertexAttribArray(mesh->vertex_normal_handle);
+        else
+            glDisableVertexAttribArray(mesh->vertex_normal_handle);
+    }
+}
+
+void gl::draw_mesh(mesh_t *mesh) {
+    glBindVertexArray(mesh->vao_handle);
+
+    set_vbo_enable_state(mesh, true);
+
+    if (mesh->indices_handle > 0) {
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->indices_handle);
+        glDrawElements(GL_TRIANGLES, mesh->model->indices->length, GL_UNSIGNED_INT, 0);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+    } else {
+        glDrawArrays(GL_TRIANGLES, 0, mesh->model->positions->length);
+    }
+
+    set_vbo_enable_state(mesh, false);
+
+    glBindVertexArray(0);
 }

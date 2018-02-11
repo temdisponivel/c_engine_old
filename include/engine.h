@@ -42,4 +42,5 @@ typedef uint64_t ulong;
 #define STRING_BUFF_HELPER_SIZE 2048
 static char STRING_BUFF_HELPER[2048];
 
+
 #endif //CYNICAL_ENGINE_CPP_ENGINE_H
