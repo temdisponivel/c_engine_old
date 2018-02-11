@@ -6,8 +6,10 @@
 #define CYNICAL_ENGINE_CPP_GRAPHICS_H
 
 #include <engine.h>
-#include "math_helper.h"
+#include <io.h>
 #include "collections.h"
+#include "stb_image.h"
+#include <collections.h>
 
 #define VERTEX_POSITION_ATTRIBUTE_INDEX 0
 #define VERTEX_COLOR_ATTRIBUTE_INDEX 1
@@ -30,8 +32,6 @@
 #define TEXTURE_8 TEXTURE_8
 #define TEXTURE_9 TEXTURE_9
 
-
-
 typedef struct mesh {
     uint vao_handle;
 
@@ -44,16 +44,22 @@ typedef struct mesh {
 } mesh_t;
 
 typedef struct model {
-    list<float> *vertices;
+    list<int> *indices;
+    list<float> *positions;
     list<float> *colors;
     list<float> *tex_coords;
     list<float> *normals;
 } model_t;
 
+enum IMAGE_CHANNELS {
+    RGB = 3,
+    RGBA = 4,
+};
+
 typedef struct image {
     void *data;
     glm::vec2 size;
-    uint channels;
+    IMAGE_CHANNELS channels;
 } image_t;
 
 typedef struct texture_config {
@@ -164,5 +170,34 @@ typedef struct material_instance {
     shader_program_t *shader;
     list<uniform_t> *uniforms;
 } material_instance_t;
+
+namespace gl {
+    image_t *create_image(const char *image_file_path);
+    void destroy_image(image_t *image);
+
+    texture_t *create_texture(image_t *image, texture_config_t config);
+    void destroy_texture(texture_t *texture);
+    void buff_texture_config_to_gl(texture_t *texture);
+
+    model_t *create_model(const char *model_file_path);
+    void destroy_model(model_t *model);
+
+    mesh_t *create_mesh(model_t *model);
+    void destroy_mesh(mesh_t *mesh);
+
+    shader_t *create_shader(const char *shader_file_path, SHADER_TYPE type);
+    void destroy_shader(shader_t *shader);
+
+    shader_program_t *create_shader_program(
+            shader_t vertex_shader,
+            shader_t fragment_shader,
+            const char *vertex_position_name,
+            const char *vertex_color_name,
+            const char *vertex_tex_coord_name,
+            const char *vertex_normal_name
+    );
+
+    void destroy_shader_program(shader_program_t *shader);
+}
 
 #endif //CYNICAL_ENGINE_CPP_GRAPHICS_H
