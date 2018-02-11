@@ -18,7 +18,7 @@ set(deps_lib_dir "${CMAKE_SOURCE_DIR}/deps/lib/${plataform}")
 set(libs "-lopengl32 -lglu32 -lgdi32 -lglfw3dll -lglew32 -luser32 -lkernel32")
 
 include_directories("include;${deps_include_dir}")
-set(SOURCE_FILES source/main.cpp include/graphics.h include/engine.h include/collections.h source/collections.cpp source/graphics.cpp include/log.h source/log.cpp include/io.h source/io.cpp)
+set(SOURCE_FILES source/main.cpp include/graphics.h include/engine.h include/collections.h source/graphics.cpp include/log.h source/log.cpp include/io.h source/io.cpp)
 add_executable(cynical_engine_cpp ${SOURCE_FILES})
 target_link_libraries(cynical_engine_cpp -L${deps_lib_dir} ${libs})
 
