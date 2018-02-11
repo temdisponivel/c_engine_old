@@ -64,7 +64,7 @@ LIST_TEMPLATE
 void lists::expand(list<T> *list) {
     uint new_capacity = list->capacity * 2;
     T *items = (T *) memalloc(sizeof(T) * new_capacity);
-    memcopy(list->items, items, list->length * sizeof(T));
+    memcopy(items, list->items, list->length * sizeof(T));
     memfree(list->items);
     list->items = items;
     list->capacity = new_capacity;

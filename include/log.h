@@ -25,6 +25,7 @@
 
 #define LOG_HEADER(COLOR, TYPE) COLOR "[" TYPE "]: "
 #define LOG_FOOTER "\n-> " __FILE__ ":" INT_TO_STR(__LINE__) "\n\n"; NORMAL_COLOR
+#define FILE_LINE "\n-> " __FILE__ ":" INT_TO_STR(__LINE__)
 
 #define LOG_MESSAGE 0
 #define LOG_WARNING 1
@@ -68,20 +69,20 @@ void ERRORF(const char *format, ...);
     fprintf(stderr,message);\
 }
 
-#define ASSERT(RESULT) {\
+#define ENSURE(RESULT) {\
     if (!(RESULT)) {\
         ERROR("Assertion failed!");\
     }\
 }
 
-#define ASSERT_BREAK(RESULT) {\
+#define ENSURE_BREAK(RESULT) {\
     if (!(RESULT)) {\
         ERROR("Assertion failed! Breaking into debugger!");\
         BREAK();\
     }\
 }
 
-#define ASSERT_EXIT(RESULT, EXIT_CODE) {\
+#define ENSURE_EXIT(RESULT, EXIT_CODE) {\
     if (!(RESULT)) {\
         ERROR("Assertion failed! Exiting program!");\
         exit(EXIT_CODE);\
@@ -108,75 +109,50 @@ void ERRORF(const char *format, ...);
 if (ERROR != GL_NO_ERROR){\
     switch (ERROR) {\
         case GL_INVALID_ENUM:\
-            MESSAGE(MSG "GL_INVALID_ENUM");\
+            ERROR(MSG "GL_INVALID_ENUM");\
             break;\
         case GL_INVALID_OPERATION:\
-            MESSAGE(MSG "GL_INVALID_OPERATION");\
+            ERROR(MSG "GL_INVALID_OPERATION");\
             break;\
         case GL_INVALID_VALUE:\
-            MESSAGE(MSG "GL_INVALID_VALUE");\
+            ERROR(MSG "GL_INVALID_VALUE");\
             break;\
-    }\
-}\
-
-
-#define PRINT_SHADER_ERROR(SHADER) {\
-    if (glIsShader(SHADER)) {\
-        int info_log_length = 0;\
-        int max_length = info_log_length;\
-\
-        glGetShaderiv(SHADER, GL_INFO_LOG_LENGTH, &max_length);\
-\
-        char *info_log = (char *) memcalloc((size_t) max_length, sizeof(char));\
-\
-        glGetShaderInfoLog(SHADER, max_length, &info_log_length, info_log);\
-        if (info_log_length > 0) {\
-            MESSAGE(info_log);\
-        }\
-\
-        memfree(info_log);\
-    } else {\
-        MESSAGE("Name %d is not a shader\n" #SHADER);\
-    }\
-}\
-
-#define PRINT_PROGRAM_ERROR(PROGRAM) {\
-    if (glIsProgram(PROGRAM)) {\
-        int info_log_length = 0;\
-        int max_length = info_log_length;\
-\
-        glGetProgramiv(PROGRAM, GL_INFO_LOG_LENGTH, &max_length);\
-\
-        char* info_log = (char *) memcalloc((size_t) max_length, sizeof(char));\
-\
-        glGetProgramInfoLog(PROGRAM, max_length, &info_log_length, info_log);\
-        if (info_log_length > 0) {\
-            MESSAGE(info_log);\
-        }\
-\
-        memfree(info_log);\
-    } else {\
-        MESSAGE("Name %d is not a program\n"#PROGRAM);\
     }\
 }\
 
 #define CHECK_SHADER_COMPILE_STATUS(SHADER, SOURCE_CODE) {\
-    GLint compile_status = GL_FALSE;\
-    glGetShaderiv(SHADER, GL_COMPILE_STATUS, &compile_status);\
-    if (compile_status != GL_TRUE) {\
-        PRINT_SHADER_ERROR((SHADER));\
-        MESSAGE("Unable to compile shader!\nShader source:\n");\
-        MESSAGE(#SOURCE_CODE);\
+    if (glIsShader(SHADER)) {\
+        GLint compile_status = GL_FALSE;\
+        glGetShaderiv(SHADER, GL_COMPILE_STATUS, &compile_status);\
+        if (compile_status != GL_TRUE) {\
+            const char *format = "Unable to compile shader!\nError message: \n '%s' \n Shader source: \n %s \n.";\
+            int info_log_length = 0;\
+            glGetShaderiv(SHADER, GL_INFO_LOG_LENGTH, &info_log_length);\
+            glGetShaderInfoLog(SHADER, STRING_BUFF_HELPER_SIZE, &info_log_length, STRING_BUFF_HELPER);\
+            char header[] = LOG_HEADER(ERROR_COLOR,"ERROR");\
+            fprintf(stderr, header); \
+            fprintf(stderr, format, STRING_BUFF_HELPER, SOURCE_CODE); \
+            char footer[] = LOG_FOOTER;\
+            fprintf(stderr, footer); \
+        }\
     }\
 }\
 
-#define CHECK_SHADER_LINK_STATUS(PROG_HANDLE) {\
-    glLinkProgram(PROG_HANDLE);\
-    GLint program_link_status = GL_TRUE;\
-    glGetProgramiv(PROG_HANDLE, GL_LINK_STATUS, &program_link_status);\
-    if (program_link_status != GL_TRUE) {\
-        PRINT_PROGRAM_ERROR((PROG_HANDLE));\
-        MESSAGE("Unable to link program!");\
+#define CHECK_SHADER_LINK_STATUS(PROGRAM) {\
+    if (glIsProgram(PROGRAM)) {\
+        GLint link_status = GL_FALSE;\
+        glGetProgramiv(PROGRAM, GL_LINK_STATUS, &link_status);\
+        if (link_status != GL_TRUE) {\
+            const char *format = "Unable to link program!\nError message: \n %s \n";\
+            int info_log_length = 0;\
+            glGetProgramiv(PROGRAM, GL_INFO_LOG_LENGTH, &info_log_length);\
+            glGetProgramInfoLog(PROGRAM, STRING_BUFF_HELPER_SIZE, &info_log_length, STRING_BUFF_HELPER);\
+            char header[] = LOG_HEADER(ERROR_COLOR,"ERROR");\
+            fprintf(stderr, header); \
+            fprintf(stderr, format, STRING_BUFF_HELPER); \
+            char footer[] = LOG_FOOTER;\
+            fprintf(stderr, footer); \
+        }\
     }\
 }\
 
@@ -193,7 +169,7 @@ void str_format(char *buffer, uint buffer_size, const char *format, ...);
 #define MESSAGE(MSG)
 #define WARNING(WARN_MESSAGE)
 #define ERROR(ERR_MESSAGE)
-#define ASSERT(RESULT)
+#define ENSURE(RESULT)
 #define LOG(MESSAGE,TYPE)
 #define ASSERT_BREAK(RESULT)
 #define BREAK()

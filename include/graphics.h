@@ -21,16 +21,16 @@
 #define VERTEX_NORMAL_ATTRIBUTE_NAME "vertex_normal"
 #define VERTEX_TEXTURE_COORD_ATTRIBUTE_NAME "vertex_texture_coord"
 
-#define TEXTURE_0 TEXTURE_0
-#define TEXTURE_1 TEXTURE_1
-#define TEXTURE_2 TEXTURE_2
-#define TEXTURE_3 TEXTURE_3
-#define TEXTURE_4 TEXTURE_4
-#define TEXTURE_5 TEXTURE_5
-#define TEXTURE_6 TEXTURE_6
-#define TEXTURE_7 TEXTURE_7
-#define TEXTURE_8 TEXTURE_8
-#define TEXTURE_9 TEXTURE_9
+#define TEXTURE_0 GL_TEXTURE0
+#define TEXTURE_1 GL_TEXTURE1
+#define TEXTURE_2 GL_TEXTURE2
+#define TEXTURE_3 GL_TEXTURE3
+#define TEXTURE_4 GL_TEXTURE4
+#define TEXTURE_5 GL_TEXTURE5
+#define TEXTURE_6 GL_TEXTURE6
+#define TEXTURE_7 GL_TEXTURE7
+#define TEXTURE_9 GL_TEXTURE8
+#define TEXTURE_8 GL_TEXTURE9
 
 typedef struct model {
     list<int> *indices;
@@ -141,7 +141,7 @@ typedef struct uniform_definition {
 } uniform_definition_t;
 
 typedef struct uniform {
-    uint handle;
+    int handle;
     int name_hash;
     UNIFORM_TYPE type;
     uniform_values_union_t current_value;
@@ -183,7 +183,7 @@ namespace gl {
     mesh_t *create_mesh(model_t *model);
     void destroy_mesh(mesh_t *mesh);
 
-    shader_t *create_shader(const char *shader_file_path, SHADER_TYPE type);
+    shader_t *create_shader(const char *shader_code, SHADER_TYPE type);
     void destroy_shader(shader_t *shader);
 
     shader_program_t *create_shader_program(
@@ -197,15 +197,13 @@ namespace gl {
 
     void destroy_shader_program(shader_program_t *shader);
 
-    uniform_t *create_uniform(uint handle, const char *name, UNIFORM_TYPE type, uniform_values_union_t value);
-    void destroy_uniform(uniform_t *uniform);
-
     material_t *create_material(
             shader_program_t *shader,
             list<uniform_definition_t> *uniform_definitions
     );
-
     void destroy_material(material_t *material);
+
+    bool try_find_uniform_by_name(const char *name, material_t *material, uniform_t *result);
 
     void buff_uniform(uniform_t uniform);
     void buff_uniforms(list<uniform_t> *uniforms);

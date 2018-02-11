@@ -7,7 +7,7 @@
 char *read_file_text(const char *file_path) {
     FILE *file = fopen(file_path, "rb");
 
-    ASSERT(file == null);
+    ENSURE(file != null);
 
     fseek(file, 0, SEEK_END);
     long length = ftell(file);
@@ -16,6 +16,8 @@ char *read_file_text(const char *file_path) {
     fread(buffer, (uint) length, 1, file);
     buffer[length] = '\0';
     fclose(file);
+
+    return buffer;
 }
 
 void free_file_text(char *text) {
@@ -23,11 +25,10 @@ void free_file_text(char *text) {
 }
 
 int hash(char *str) {
-    unsigned long hash = 5381;
-    int c = 0;
-
-    while (c = *str++)
-        hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
-
+    int hash = 0;
+    char c;
+    while ((c = *str++) != '\0') {
+        hash += c;
+    }
     return hash;
 }

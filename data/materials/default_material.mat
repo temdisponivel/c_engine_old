@@ -1,0 +1,16 @@
+# SHADER FILES
+v data/shaders/default_vertex_shader.glsl
+f data/shaders/default_fragment_shader.glsl
+
+# UNIFORMS
+u my_texture UNIFORM_TEXTURE2D : data/textures/the_witness.png TEXTURE_3
+u MVP UNIFORM_MAT4 : 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15
+u tint UNIFORM_VEC4 : 1 1 1 1
+u wrap UNIFORM_VEC2 : 2 0.5
+u offset UNIFORM_VEC2 : 1.5 1
+
+# ATTRIBUTES
+vp vertex_position
+vc vertex_color
+vn vertex_normal
+vt vertex_texture_coord

@@ -23,3 +23,4 @@ add_executable(cynical_engine_cpp ${SOURCE_FILES})
 target_link_libraries(cynical_engine_cpp -L${deps_lib_dir} ${libs})
 
 file(COPY ${deps_bin_dir}/ DESTINATION .)
+file(COPY data DESTINATION .)

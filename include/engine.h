@@ -14,7 +14,7 @@
 #define STBI_MALLOC memalloc
 #define STBI_FREE memfree
 #define STBI_REALLOC memrealloc
-#define STBI_ASSERT(EXPRESSION) ASSERT(!EXPRESSION)
+#define STBI_ASSERT ENSURE
 
 #define null nullptr
 

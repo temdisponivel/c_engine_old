@@ -17,7 +17,7 @@ image_t *gl::create_image(const char *image_file_path) {
 
 #if DEV
     if (data == null) {
-        ERRORF("IMAGE '%s' COULDN'T BE LOADED!", image_file_path);
+        ERRORF(FILE_LINE, "IMAGE '%s' COULDN'T BE LOADED!", image_file_path);
     }
 
     if (channels < 3 || channels > 4) {
@@ -146,9 +146,6 @@ void gl::buff_texture_config_to_gl(texture_t *texture) {
 }
 
 model_t *gl::create_model(const char *model_file_path) {
-    char *file_content = read_file_text(model_file_path);
-    ASSERT(file_content == null);
-
     // TODO: optimize this!!!
 
     list<float> *positions = lists::create<float>(256);
@@ -160,7 +157,7 @@ model_t *gl::create_model(const char *model_file_path) {
     const char line_buffer[256] = {};
 
     FILE *file = fopen(model_file_path, "rb");
-    ASSERT(file == null);
+    ENSURE(file != null);
 
     while (fscanf(file, "%s", line_buffer) != EOF) {
         if (strcmp(line_buffer, "vp") == 0) {
@@ -199,7 +196,7 @@ model_t *gl::create_model(const char *model_file_path) {
     }
     fclose(file);
 
-    ASSERT(positions->length == 0);
+    ENSURE(positions->length > 0);
 
     model_t *model = (model_t *) memalloc(sizeof(model_t));
 
@@ -434,16 +431,18 @@ material_t *gl::create_material(
         uniform_definition_t uniform_def = uniform_definitions->items[i];
         uniform_t uniform = {};
 
+        ENSURE(uniform_def.name != null);
+
         int handle = glGetUniformLocation(shader->handle, uniform_def.name);
         if (handle < 0) {
-            WARNINGF("UNIFORM '{0}' NOT FOUND!", uniform.name_hash);
+            WARNINGF("UNIFORM '%s' NOT FOUND!" FILE_LINE, uniform_def.name);
             handle = 0;
         }
 
-        uniform.handle = (uint) handle;
+        uniform.handle = handle;
         uniform.name_hash = hash(uniform_def.name);
         uniform.type = uniform_def.type;
-        uniform.current_value = uniform.current_value;
+        uniform.current_value = uniform_def.default_value;
 
         lists::add(uniforms, uniform);
     }
@@ -457,6 +456,19 @@ void gl::destroy_material(material_t *material) {
     memfree(material);
 }
 
+bool gl::try_find_uniform_by_name(const char *name, material_t *material, uniform_t *result) {
+    int name_hash = hash((char *) name);
+    list<uniform_t> *uniforms = material->uniforms;
+    for (int i = 0; i < uniforms->length; ++i) {
+        uniform_t uniform = uniforms->items[i];
+        if (uniform.name_hash == name_hash)
+        {
+            *result = uniform;
+            return true;
+        }
+    }
+    return false;
+}
 
 void gl::buff_uniform(uniform_t uniform) {
 
@@ -497,16 +509,16 @@ void gl::buff_uniform(uniform_t uniform) {
             glUniform1d(uniform.handle, uniform.current_value.double_value);
             break;
         case UNIFORM_VEC2:
-            glUniform2fv(uniform.handle, 1, (const GLfloat *) &uniform.current_value.vector2_value);
+            glUniform2fv(uniform.handle, 1, (const GLfloat *) &uniform.current_value.vector2_value[0]);
             break;
         case UNIFORM_VEC3:
-            glUniform3fv(uniform.handle, 1, (const GLfloat *) &uniform.current_value.vector3_value);
+            glUniform3fv(uniform.handle, 1, (const GLfloat *) &uniform.current_value.vector3_value[0]);
             break;
         case UNIFORM_VEC4:
-            glUniform4fv(uniform.handle, 1, (const GLfloat *) &uniform.current_value.vector4_value);
+            glUniform4fv(uniform.handle, 1, (const GLfloat *) &uniform.current_value.vector4_value[0]);
             break;
         case UNIFORM_MAT4:
-            glUniformMatrix4fv(uniform.handle, 1, GL_FALSE, (const GLfloat *) &uniform.current_value.matrix_value);
+            glUniformMatrix4fv(uniform.handle, 1, GL_FALSE, (const GLfloat *) &uniform.current_value.matrix_value[0][0]);
             break;
         case UNIFORM_TEXTURE2D:
             glActiveTexture(uniform.current_value.texture_value.texture_target_index);
@@ -528,7 +540,7 @@ void gl::buff_uniforms(list<uniform_t> *uniforms) {
 
 void gl::use_material(material_t *material) {
     glUseProgram(material->shader->handle);
-    buff_uniforms(material->uniforms);
+    gl::buff_uniforms(material->uniforms);
 }
 
 void set_vbo_enable_state(mesh_t *mesh, bool state) {
