@@ -11,6 +11,8 @@
 #include "stb_image.h"
 #include <collections.h>
 
+#define NONE 0
+
 #define VERTEX_POSITION_ATTRIBUTE_INDEX 0
 #define VERTEX_COLOR_ATTRIBUTE_INDEX 1
 #define VERTEX_NORMAL_ATTRIBUTE_INDEX 2
@@ -166,7 +168,7 @@ typedef struct shader_program {
 
 typedef struct material {
     shader_program_t *shader;
-    list<uniform_t> *uniforms;
+    list<uniform_t*> *uniforms;
 } material_t;
 
 namespace gl {
@@ -175,6 +177,7 @@ namespace gl {
 
     texture_t *create_texture(image_t *image, texture_config_t config);
     void destroy_texture(texture_t *texture);
+    texture_config_t get_default_texture_config();
     void buff_texture_config_to_gl(texture_t *texture);
 
     model_t *create_model(const char *model_file_path);
@@ -203,10 +206,10 @@ namespace gl {
     );
     void destroy_material(material_t *material);
 
-    bool try_find_uniform_by_name(const char *name, material_t *material, uniform_t *result);
+    uniform_t *find_uniform_by_name(const char *name, material_t *material);
 
-    void buff_uniform(uniform_t uniform);
-    void buff_uniforms(list<uniform_t> *uniforms);
+    void buff_uniform(uniform_t *uniform);
+    void buff_uniforms(list<uniform_t*> *uniforms);
 
     void use_material(material_t *material);
     void draw_mesh(mesh_t *mesh);

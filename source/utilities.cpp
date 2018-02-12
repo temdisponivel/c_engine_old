@@ -11,7 +11,7 @@ char *read_file_text(const char *file_path) {
 
     fseek(file, 0, SEEK_END);
     long length = ftell(file);
-    char *buffer = (char *) memalloc(sizeof(char) * length);
+    char *buffer = (char *) memalloc(sizeof(char) * (length + 1));
     fseek(file, 0, SEEK_SET);
     fread(buffer, (uint) length, 1, file);
     buffer[length] = '\0';

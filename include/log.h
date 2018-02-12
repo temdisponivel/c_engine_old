@@ -105,18 +105,19 @@ void ERRORF(const char *format, ...);
     }\
 }
 
-#define PRINT_GL_ERROR(MSG, ERROR)\
-if (ERROR != GL_NO_ERROR){\
-    switch (ERROR) {\
-        case GL_INVALID_ENUM:\
-            ERROR(MSG "GL_INVALID_ENUM");\
-            break;\
-        case GL_INVALID_OPERATION:\
-            ERROR(MSG "GL_INVALID_OPERATION");\
-            break;\
-        case GL_INVALID_VALUE:\
-            ERROR(MSG "GL_INVALID_VALUE");\
-            break;\
+#define PRINT_GL_ERROR(MSG, ERR) {\
+    if ((ERR) != GL_NO_ERROR){\
+        switch ((ERR)) {\
+            case GL_INVALID_ENUM:\
+                ERROR(MSG "GL_INVALID_ENUM");\
+                break;\
+            case GL_INVALID_OPERATION:\
+                ERROR(MSG "GL_INVALID_OPERATION");\
+                break;\
+            case GL_INVALID_VALUE:\
+                ERROR(MSG "GL_INVALID_VALUE");\
+                break;\
+        }\
     }\
 }\
 

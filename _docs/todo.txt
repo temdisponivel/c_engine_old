@@ -1,0 +1,16 @@
+fix all the "todo:" in code
+make cube appear in scene and rotate properly (being loaded from the obj file) ** (need to create the index buffer)
+
+better material (relative paths to texture and shaders, maybe hot reload)
+better error handling
+fix release stuff
+
+maybe load materials from string buffer instead of FILE?
+
+maybe put all shaders into one file and parse at runtime (just like shader lab)?
+
+Because as of this moment, the material is telling the game all the uniforms, properties, etc
+this should really be done in the shader. The material should only "read" what the shader exposes
+and change the values of the properties
+
+implement offset + wrap

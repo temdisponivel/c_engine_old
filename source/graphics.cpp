@@ -7,6 +7,7 @@
 #include <cstring>
 
 #define STB_IMAGE_IMPLEMENTATION
+
 #include "stb_image.h"
 
 image_t *gl::create_image(const char *image_file_path) {
@@ -29,7 +30,7 @@ image_t *gl::create_image(const char *image_file_path) {
     if (channels == 4)
         image_channels = IMAGE_CHANNELS::RGBA;
 
-    image = (image_t *) memalloc(sizeof(image));
+    image = (image_t *) memalloc(sizeof(image_t));
     image->data = data;
     image->channels = image_channels;
     image->size.x = width;
@@ -51,6 +52,8 @@ texture_t *gl::create_texture(image_t *image, texture_config_t config) {
 
     glGenTextures(1, &texture_handle);
     glBindTexture(GL_TEXTURE_2D, texture_handle);
+    CHECK_GL_ERROR();
+
     glTexImage2D(
             GL_TEXTURE_2D,
             0,
@@ -62,10 +65,10 @@ texture_t *gl::create_texture(image_t *image, texture_config_t config) {
             GL_UNSIGNED_BYTE,
             image->data
     );
+    CHECK_GL_ERROR();
 
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, config.texture_mag_filter);
-
-    glBindTexture(GL_TEXTURE_2D, 0);
+    glBindTexture(GL_TEXTURE_2D, NONE);
+    CHECK_GL_ERROR();
 
     texture_t *texture = (texture_t *) memalloc(sizeof(texture_t));
 
@@ -83,6 +86,20 @@ void gl::destroy_texture(texture_t *texture) {
     memfree(texture);
 }
 
+texture_config_t gl::get_default_texture_config() {
+    texture_config_t default_config;
+
+    memset(&default_config, 0, sizeof(texture_config_t));
+
+    default_config.texture_wrap_r = GL_REPEAT;
+    default_config.texture_wrap_s = GL_REPEAT;
+    default_config.texture_wrap_t = GL_REPEAT;
+
+    default_config.texture_min_filter = GL_NEAREST;
+    default_config.texture_mag_filter = GL_NEAREST;
+
+    return default_config;
+}
 
 void gl::buff_texture_config_to_gl(texture_t *texture) {
     texture_config_t config = texture->config;
@@ -95,7 +112,7 @@ void gl::buff_texture_config_to_gl(texture_t *texture) {
         glTexParameteri(GL_TEXTURE_2D, GL_DEPTH_STENCIL_TEXTURE_MODE, config.depth_stencil_texture_mode);
 
     if (config.texture_base_level > 0)
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, config.texture_base_level );
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, config.texture_base_level);
 
     if (config.texture_compare_func > 0)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, config.texture_compare_func);
@@ -142,7 +159,9 @@ void gl::buff_texture_config_to_gl(texture_t *texture) {
     if (config.texture_wrap_r > 0)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, config.texture_wrap_r);
 
-    glBindTexture(GL_TEXTURE_2D, 0);
+    CHECK_GL_ERROR();
+
+    glBindTexture(GL_TEXTURE_2D, NONE);
 }
 
 model_t *gl::create_model(const char *model_file_path) {
@@ -225,7 +244,8 @@ void buff_vbo(
         uint handle,
         uint array_index,
         void *data,
-        uint size,
+        uint ptr_size,
+        uint dimention,
         uint gl_data_type,
         GLboolean normalized,
         uint stride,
@@ -233,44 +253,28 @@ void buff_vbo(
         GLenum usage
 ) {
     glBindBuffer(GL_ARRAY_BUFFER, handle);
+    CHECK_GL_ERROR();
 
     glBufferData(
             GL_ARRAY_BUFFER,
-            size,
+            ptr_size,
             data,
             usage
     );
+    CHECK_GL_ERROR();
 
     glVertexAttribPointer(
             array_index,
-            size,
+            dimention,
             gl_data_type,
             normalized,
             stride,
             offset
     );
+    CHECK_GL_ERROR();
 
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-}
-
-uint create_vbo_from_list_helper(
-        list<float> *list,
-        uint array_index
-) {
-    uint handle;
-    glGenBuffers(1, &handle);
-
-    buff_vbo(
-            handle,
-            array_index,
-            list->items,
-            list->length,
-            GL_FLOAT,
-            GL_FALSE,
-            0,
-            0,
-            GL_STATIC_DRAW
-    );
+    glBindBuffer(GL_ARRAY_BUFFER, NONE);
+    CHECK_GL_ERROR();
 }
 
 mesh_t *gl::create_mesh(model_t *model) {
@@ -282,58 +286,116 @@ mesh_t *gl::create_mesh(model_t *model) {
     uint tex_coord_vbo = 0;
     uint normal_vbo = 0;
 
+    glGenVertexArrays(1, &vao);
+    CHECK_GL_ERROR();
+
+    glBindVertexArray(vao);
+    CHECK_GL_ERROR();
+
     if (!lists::null_or_empty(model->indices)) {
         glGenBuffers(1, &indices_vbo);
+        CHECK_GL_ERROR();
+
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indices_vbo);
+        CHECK_GL_ERROR();
+
         glBufferData(
                 GL_ELEMENT_ARRAY_BUFFER,
-                model->indices->length,
+                model->indices->length * sizeof(GLint),
                 model->indices->items,
                 GL_STATIC_DRAW
         );
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+        CHECK_GL_ERROR();
+
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, NONE);
+        CHECK_GL_ERROR();
     }
 
     if (!lists::null_or_empty(model->positions)) {
-        position_vbo = create_vbo_from_list_helper(model->positions, VERTEX_POSITION_ATTRIBUTE_INDEX);
+        glGenBuffers(1, &position_vbo);
+        CHECK_GL_ERROR();
+
+        buff_vbo(
+                position_vbo,
+                VERTEX_POSITION_ATTRIBUTE_INDEX,
+                model->positions->items,
+                model->positions->length * sizeof(GLfloat),
+                3,
+                GL_FLOAT,
+                GL_FALSE,
+                0,
+                null,
+                GL_STATIC_DRAW
+        );
     }
 
     if (!lists::null_or_empty(model->colors)) {
-        color_vbo = create_vbo_from_list_helper(model->colors, VERTEX_COLOR_ATTRIBUTE_INDEX);
+        glGenBuffers(1, &color_vbo);
+        CHECK_GL_ERROR();
+
+        buff_vbo(
+                color_vbo,
+                VERTEX_COLOR_ATTRIBUTE_INDEX,
+                model->colors->items,
+                model->colors->length * sizeof(GLfloat),
+                3,
+                GL_FLOAT,
+                GL_FALSE,
+                0,
+                null,
+                GL_STATIC_DRAW
+        );
     }
 
     if (!lists::null_or_empty(model->tex_coords)) {
-        tex_coord_vbo = create_vbo_from_list_helper(model->tex_coords, VERTEX_TEXTURE_COORD_ATTRIBUTE_INDEX);
+        glGenBuffers(1, &tex_coord_vbo);
+        CHECK_GL_ERROR();
+
+        buff_vbo(
+                tex_coord_vbo,
+                VERTEX_TEXTURE_COORD_ATTRIBUTE_INDEX,
+                model->tex_coords->items,
+                model->tex_coords->length * sizeof(GLfloat),
+                2,
+                GL_FLOAT,
+                GL_FALSE,
+                0,
+                null,
+                GL_STATIC_DRAW
+        );
     }
 
     if (!lists::null_or_empty(model->normals)) {
-        normal_vbo = create_vbo_from_list_helper(model->normals, VERTEX_NORMAL_ATTRIBUTE_INDEX);
+        glGenBuffers(1, &normal_vbo);
+        CHECK_GL_ERROR();
+
+        buff_vbo(
+                normal_vbo,
+                VERTEX_NORMAL_ATTRIBUTE_INDEX,
+                model->normals->items,
+                model->normals->length * sizeof(GLfloat),
+                3,
+                GL_FLOAT,
+                GL_FALSE,
+                0,
+                null,
+                GL_STATIC_DRAW
+        );
     }
 
-    glGenVertexArrays(1, &vao);
-    glBindVertexArray(vao);
-
-    if (position_vbo > 0)
-        glEnableVertexAttribArray(position_vbo);
-
-    if (color_vbo > 0)
-        glEnableVertexAttribArray(color_vbo);
-
-    if (tex_coord_vbo > 0)
-        glEnableVertexAttribArray(tex_coord_vbo);
-
-    if (normal_vbo > 0)
-        glEnableVertexAttribArray(normal_vbo);
-
-    glBindVertexArray(0);
+    glBindVertexArray(NONE);
 
     mesh_t *mesh = (mesh_t *) memalloc(sizeof(mesh_t));
+
     mesh->model = model;
+
+    mesh->vao_handle = vao;
     mesh->indices_handle = indices_vbo;
     mesh->vertex_position_handle = position_vbo;
     mesh->vertex_color_handle = color_vbo;
     mesh->vertex_tex_coord_handle = tex_coord_vbo;
     mesh->vertex_normal_handle = normal_vbo;
+
     return mesh;
 }
 
@@ -355,6 +417,8 @@ void gl::destroy_mesh(mesh_t *mesh) {
 
     glDeleteVertexArrays(1, &mesh->indices_handle);
     memfree(mesh);
+
+    CHECK_GL_ERROR();
 }
 
 shader_t *gl::create_shader(
@@ -368,8 +432,13 @@ shader_t *gl::create_shader(
         shader_type = GL_FRAGMENT_SHADER;
 
     uint handle = glCreateShader(shader_type);
+    CHECK_GL_ERROR();
+
     glShaderSource(handle, 1, &shader_code, 0);
+    CHECK_GL_ERROR();
+
     glCompileShader(handle);
+    CHECK_GL_ERROR();
 
     CHECK_SHADER_COMPILE_STATUS(handle, shader_code);
 
@@ -393,13 +462,27 @@ shader_program_t *gl::create_shader_program(
         const char *vertex_normal_name
 ) {
     uint handle = glCreateProgram();
-    glAttachShader(handle, vertex_shader.handle);
-    glAttachShader(handle, fragment_shader.handle);
+    CHECK_GL_ERROR();
 
-    glBindAttribLocation(handle, VERTEX_POSITION_ATTRIBUTE_INDEX, vertex_position_name);
-    glBindAttribLocation(handle, VERTEX_COLOR_ATTRIBUTE_INDEX, vertex_color_name);
-    glBindAttribLocation(handle, VERTEX_TEXTURE_COORD_ATTRIBUTE_INDEX, vertex_tex_coord_name);
-    glBindAttribLocation(handle, VERTEX_NORMAL_ATTRIBUTE_INDEX, vertex_normal_name);
+    glAttachShader(handle, vertex_shader.handle);
+    CHECK_GL_ERROR();
+
+    glAttachShader(handle, fragment_shader.handle);
+    CHECK_GL_ERROR();
+
+    if (vertex_position_name != null)
+        glBindAttribLocation(handle, VERTEX_POSITION_ATTRIBUTE_INDEX, vertex_position_name);
+
+    if (vertex_color_name != null)
+        glBindAttribLocation(handle, VERTEX_COLOR_ATTRIBUTE_INDEX, vertex_color_name);
+
+    if (vertex_tex_coord_name != null)
+        glBindAttribLocation(handle, VERTEX_TEXTURE_COORD_ATTRIBUTE_INDEX, vertex_tex_coord_name);
+
+    if (vertex_normal_name != null)
+        glBindAttribLocation(handle, VERTEX_NORMAL_ATTRIBUTE_INDEX, vertex_normal_name);
+
+    CHECK_GL_ERROR();
 
     glLinkProgram(handle);
 
@@ -426,23 +509,24 @@ material_t *gl::create_material(
     material_t *material = (material_t *) memalloc(sizeof(material_t));
     material->shader = shader;
 
-    list<uniform_t> *uniforms = lists::create<uniform_t>(uniform_definitions->length);
+    list<uniform_t *> *uniforms = lists::create<uniform_t *>(uniform_definitions->length);
     for (int i = 0; i < uniform_definitions->length; ++i) {
         uniform_definition_t uniform_def = uniform_definitions->items[i];
-        uniform_t uniform = {};
+        uniform_t *uniform = (uniform_t *) memalloc(sizeof(uniform_t));
 
         ENSURE(uniform_def.name != null);
 
         int handle = glGetUniformLocation(shader->handle, uniform_def.name);
+        CHECK_GL_ERROR();
+
         if (handle < 0) {
             WARNINGF("UNIFORM '%s' NOT FOUND!" FILE_LINE, uniform_def.name);
-            handle = 0;
         }
 
-        uniform.handle = handle;
-        uniform.name_hash = hash(uniform_def.name);
-        uniform.type = uniform_def.type;
-        uniform.current_value = uniform_def.default_value;
+        uniform->handle = handle;
+        uniform->name_hash = hash(uniform_def.name);
+        uniform->type = uniform_def.type;
+        uniform->current_value = uniform_def.default_value;
 
         lists::add(uniforms, uniform);
     }
@@ -452,87 +536,101 @@ material_t *gl::create_material(
 }
 
 void gl::destroy_material(material_t *material) {
+    for (int i = 0; i < material->uniforms->length; ++i) {
+        uniform_t *uni = material->uniforms->items[i];
+        memfree(uni);
+    }
     lists::destroy(material->uniforms);
     memfree(material);
 }
 
-bool gl::try_find_uniform_by_name(const char *name, material_t *material, uniform_t *result) {
+uniform_t *gl::find_uniform_by_name(const char *name, material_t *material) {
     int name_hash = hash((char *) name);
-    list<uniform_t> *uniforms = material->uniforms;
+    list<uniform_t *> *uniforms = material->uniforms;
     for (int i = 0; i < uniforms->length; ++i) {
-        uniform_t uniform = uniforms->items[i];
-        if (uniform.name_hash == name_hash)
-        {
-            *result = uniform;
-            return true;
+        uniform_t *uniform = uniforms->items[i];
+        if (uniform->handle < 0)
+            continue;
+
+        if (uniform->name_hash == name_hash) {
+            return uniform;
         }
     }
-    return false;
+
+    return null;
 }
 
-void gl::buff_uniform(uniform_t uniform) {
+void gl::buff_uniform(uniform_t *uniform) {
 
     // The shader doesn't have the material uniform defined on the material file
-    if (uniform.handle < 0)
+    if (uniform->handle < 0)
         return;
 
-    switch (uniform.type) {
+    switch (uniform->type) {
 
         case UNIFORM_BOOLEAN:
-            glUniform1i(uniform.handle, uniform.current_value.bool_value);
+            glUniform1i(uniform->handle, uniform->current_value.bool_value);
             break;
         case UNIFORM_BYTE:
-            glUniform1i(uniform.handle, uniform.current_value.byte_value);
+            glUniform1i(uniform->handle, uniform->current_value.byte_value);
             break;
         case UNIFORM_UBYTE:
-            glUniform1ui(uniform.handle, uniform.current_value.ubyte_value);
+            glUniform1ui(uniform->handle, uniform->current_value.ubyte_value);
             break;
         case UNIFORM_SHORT:
-            glUniform1i(uniform.handle, uniform.current_value.short_value);
+            glUniform1i(uniform->handle, uniform->current_value.short_value);
             break;
         case UNIFORM_USHORT:
-            glUniform1ui(uniform.handle, uniform.current_value.ushort_value);
+            glUniform1ui(uniform->handle, uniform->current_value.ushort_value);
             break;
         case UNIFORM_INT:
-            glUniform1i(uniform.handle, uniform.current_value.int_value);
+            glUniform1i(uniform->handle, uniform->current_value.int_value);
             break;
         case UNIFORM_UINT:
-            glUniform1ui(uniform.handle, uniform.current_value.uint_value);
+            glUniform1ui(uniform->handle, uniform->current_value.uint_value);
             break;
         case UNIFORM_LONG:
-            glUniform1i(uniform.handle, uniform.current_value.long_value);
+            glUniform1i(uniform->handle, uniform->current_value.long_value);
             break;
         case UNIFORM_FLOAT:
-            glUniform1f(uniform.handle, uniform.current_value.float_value);
+            glUniform1f(uniform->handle, uniform->current_value.float_value);
             break;
         case UNIFORM_DOUBLE:
-            glUniform1d(uniform.handle, uniform.current_value.double_value);
+            glUniform1d(uniform->handle, uniform->current_value.double_value);
             break;
         case UNIFORM_VEC2:
-            glUniform2fv(uniform.handle, 1, (const GLfloat *) &uniform.current_value.vector2_value[0]);
+            glUniform2fv(uniform->handle, 1, (const GLfloat *) glm::value_ptr(uniform->current_value.vector2_value));
             break;
         case UNIFORM_VEC3:
-            glUniform3fv(uniform.handle, 1, (const GLfloat *) &uniform.current_value.vector3_value[0]);
+            glUniform3fv(uniform->handle, 1, (const GLfloat *) glm::value_ptr(uniform->current_value.vector3_value));
             break;
         case UNIFORM_VEC4:
-            glUniform4fv(uniform.handle, 1, (const GLfloat *) &uniform.current_value.vector4_value[0]);
+            glUniform4fv(uniform->handle, 1, (const GLfloat *) glm::value_ptr(uniform->current_value.vector4_value));
             break;
         case UNIFORM_MAT4:
-            glUniformMatrix4fv(uniform.handle, 1, GL_FALSE, (const GLfloat *) &uniform.current_value.matrix_value[0][0]);
+            glUniformMatrix4fv(
+                    uniform->handle,
+                    1,
+                    GL_FALSE,
+                    (const GLfloat *) glm::value_ptr(uniform->current_value.matrix_value)
+            );
+
             break;
         case UNIFORM_TEXTURE2D:
-            glActiveTexture(uniform.current_value.texture_value.texture_target_index);
-            glBindTexture(GL_TEXTURE_2D, uniform.current_value.texture_value.texture->handle);
+            glActiveTexture(uniform->current_value.texture_value.texture_target_index);
+            glBindTexture(GL_TEXTURE_2D, uniform->current_value.texture_value.texture->handle);
 
             // texture target index is GL_TEXTURE0, GL_TEXTURE1, GL_TEXTURE{X}
             // But the parameter must be 0, 1, {x}. So we subtract the index from the GL_TEXTURE0
             // to get only the "{x}"
-            glUniform1i(uniform.handle, uniform.current_value.texture_value.texture_target_index - GL_TEXTURE0);
+            glUniform1i(uniform->handle, uniform->current_value.texture_value.texture_target_index - GL_TEXTURE0);
             break;
     }
+
+    CHECK_GL_ERROR();
 }
 
-void gl::buff_uniforms(list<uniform_t> *uniforms) {
+void gl::buff_uniforms(list<uniform_t *> *uniforms) {
     for (int i = 0; i < uniforms->length; ++i) {
         buff_uniform(uniforms->items[i]);
     }
@@ -540,53 +638,64 @@ void gl::buff_uniforms(list<uniform_t> *uniforms) {
 
 void gl::use_material(material_t *material) {
     glUseProgram(material->shader->handle);
+    CHECK_GL_ERROR();
+
     gl::buff_uniforms(material->uniforms);
 }
 
 void set_vbo_enable_state(mesh_t *mesh, bool state) {
     if (mesh->vertex_position_handle > 0) {
         if (state)
-            glEnableVertexAttribArray(mesh->vertex_position_handle);
+            glEnableVertexAttribArray(VERTEX_POSITION_ATTRIBUTE_INDEX);
         else
-            glDisableVertexAttribArray(mesh->vertex_position_handle);
+            glDisableVertexAttribArray(VERTEX_POSITION_ATTRIBUTE_INDEX);
     }
 
     if (mesh->vertex_color_handle > 0) {
         if (state)
-            glEnableVertexAttribArray(mesh->vertex_color_handle);
+            glEnableVertexAttribArray(VERTEX_COLOR_ATTRIBUTE_INDEX);
         else
-            glDisableVertexAttribArray(mesh->vertex_color_handle);
+            glDisableVertexAttribArray(VERTEX_COLOR_ATTRIBUTE_INDEX);
     }
 
     if (mesh->vertex_tex_coord_handle > 0) {
         if (state)
-            glEnableVertexAttribArray(mesh->vertex_tex_coord_handle);
+            glEnableVertexAttribArray(VERTEX_TEXTURE_COORD_ATTRIBUTE_INDEX);
         else
-            glDisableVertexAttribArray(mesh->vertex_tex_coord_handle);
+            glDisableVertexAttribArray(VERTEX_TEXTURE_COORD_ATTRIBUTE_INDEX);
     }
 
     if (mesh->vertex_normal_handle > 0) {
         if (state)
-            glEnableVertexAttribArray(mesh->vertex_normal_handle);
+            glEnableVertexAttribArray(VERTEX_NORMAL_ATTRIBUTE_INDEX);
         else
-            glDisableVertexAttribArray(mesh->vertex_normal_handle);
+            glDisableVertexAttribArray(VERTEX_NORMAL_ATTRIBUTE_INDEX);
     }
+
+    CHECK_GL_ERROR();
 }
 
 void gl::draw_mesh(mesh_t *mesh) {
     glBindVertexArray(mesh->vao_handle);
+    CHECK_GL_ERROR();
 
     set_vbo_enable_state(mesh, true);
 
     if (mesh->indices_handle > 0) {
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->indices_handle);
-        glDrawElements(GL_TRIANGLES, mesh->model->indices->length, GL_UNSIGNED_INT, 0);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+        CHECK_GL_ERROR();
+
+        glDrawElements(GL_TRIANGLES, mesh->model->indices->length, GL_UNSIGNED_INT, null);
+        CHECK_GL_ERROR();
+
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, NONE);
+        CHECK_GL_ERROR();
     } else {
         glDrawArrays(GL_TRIANGLES, 0, mesh->model->positions->length);
+        CHECK_GL_ERROR();
     }
 
     set_vbo_enable_state(mesh, false);
 
-    glBindVertexArray(0);
+    glBindVertexArray(NONE);
 }
