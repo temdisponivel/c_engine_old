@@ -57,6 +57,9 @@ int main(void) {
             VERTEX_NORMAL_ATTRIBUTE_NAME
     );
 
+    // Needs to set this so that stb_image loads the way opengl expects it!
+    stbi_set_flip_vertically_on_load(true);
+
     image_t *image = gl::create_image("data/textures/the_witness.png");
 
     texture_config_t config = gl::get_default_texture_config();
@@ -127,7 +130,7 @@ int main(void) {
 
         m = glm::scale(m, glm::vec3(2, 2, 2));
 
-        p = glm::perspective(glm::radians(45.f), ratio, 0.1f, 100.f);
+        p = glm::perspective(45.f, ratio, 0.1f, 100.f);
         v = glm::lookAt(glm::vec3(), glm::vec3(0, 0, -1), glm::vec3(0, 1, 0));
 
         mvp = p * v * m;
