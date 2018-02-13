@@ -18,3 +18,5 @@ implement offset + wrap
 add options to change DEPTH TEST and DEPTH_FUNC (and possible other similar features) on the material to be used!
 
 refactor the archtecture of the core stuff
+
+also refactor the stuff on graphics (like the list of all mesh renderers that will be draw)
