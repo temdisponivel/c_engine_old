@@ -14,3 +14,5 @@ this should really be done in the shader. The material should only "read" what t
 and change the values of the properties
 
 implement offset + wrap
+
+add options to change DEPTH TEST and DEPTH_FUNC (and possible other similar features) on the material to be used!

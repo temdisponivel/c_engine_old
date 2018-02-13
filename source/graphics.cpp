@@ -10,6 +10,40 @@
 
 #include "stb_image.h"
 
+static graphics_state_t gl_state = {};
+
+graphics_state_t gl::get_graphics_state() {
+    return gl_state;
+}
+
+void gl::set_depth_func(COMPARE_FUNCTIONS func) {
+    if (gl_state.current_depth_func != func) {
+        if (func == COMPARE_DISABLED) {
+            glDisable(GL_DEPTH_TEST);
+        } else {
+            if (gl_state.current_depth_func == COMPARE_DISABLED)
+                glEnable(GL_DEPTH_TEST);
+
+            if (func == COMPARE_DEFAULT)
+                glDepthFunc(DEFAULT_COMPARE_FUNC);
+            if (func == COMPARE_LESS)
+                glDepthFunc(GL_LESS);
+            else if (func == COMPARE_LESS_OR_EQUAL)
+                glDepthFunc(GL_LEQUAL);
+            else if (func == COMPARE_EQUAL)
+                glDepthFunc(GL_EQUAL);
+            else if (func == COMPARE_GREATER)
+                glDepthFunc(GL_GREATER);
+            else if (func == COMPARE_GREATER_OR_EQUAL)
+                glDepthFunc(GL_GEQUAL);
+            else if (func == COMPARE_DIFFERENT)
+                glDepthFunc(GL_NOTEQUAL);
+        }
+
+        gl_state.current_depth_func = func;
+    }
+}
+
 image_t *gl::create_image(const char *image_file_path) {
     image_t *image;
 
@@ -67,7 +101,7 @@ texture_t *gl::create_texture(image_t *image, texture_config_t config) {
     );
     CHECK_GL_ERROR();
 
-    glBindTexture(GL_TEXTURE_2D, NONE);
+    glBindTexture(GL_TEXTURE_2D, HANDLE_NONE);
     CHECK_GL_ERROR();
 
     texture_t *texture = (texture_t *) memalloc(sizeof(texture_t));
@@ -87,16 +121,14 @@ void gl::destroy_texture(texture_t *texture) {
 }
 
 texture_config_t gl::get_default_texture_config() {
-    texture_config_t default_config;
+    texture_config_t default_config = {};
 
-    memset(&default_config, 0, sizeof(texture_config_t));
+    default_config.texture_wrap_r = TEX_WRAP_MIRRORED_REPEAT;
+    default_config.texture_wrap_s = TEX_WRAP_MIRRORED_REPEAT;
+    default_config.texture_wrap_t = TEX_WRAP_MIRRORED_REPEAT;
 
-    default_config.texture_wrap_r = GL_REPEAT;
-    default_config.texture_wrap_s = GL_REPEAT;
-    default_config.texture_wrap_t = GL_REPEAT;
-
-    default_config.texture_min_filter = GL_NEAREST;
-    default_config.texture_mag_filter = GL_NEAREST;
+    default_config.texture_min_filter = TEX_MIN_FILTER_NEAREST;
+    default_config.texture_mag_filter = TEX_MAG_FILTER_NEAREST;
 
     return default_config;
 }
@@ -106,62 +138,102 @@ void gl::buff_texture_config_to_gl(texture_t *texture) {
 
     glBindTexture(GL_TEXTURE_2D, texture->handle);
 
-    // TODO: validate values according to the parameter!
-
-    if (config.depth_stencil_texture_mode > 0)
+    if (config.depth_stencil_texture_mode != DEPTH_STENCIL_DEFAULT) {
         glTexParameteri(GL_TEXTURE_2D, GL_DEPTH_STENCIL_TEXTURE_MODE, config.depth_stencil_texture_mode);
+        CHECK_GL_ERROR();
+    }
 
-    if (config.texture_base_level > 0)
+    if (config.texture_base_level > 0) {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, config.texture_base_level);
+        CHECK_GL_ERROR();
+    }
 
-    if (config.texture_compare_func > 0)
+    if (config.texture_border_color.length() > 0) {
+        glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, glm::value_ptr(config.texture_border_color));
+        CHECK_GL_ERROR();
+    }
+
+    if (config.texture_compare_func != COMPARE_DEFAULT) {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, config.texture_compare_func);
+        CHECK_GL_ERROR();
+    }
 
-    if (config.texture_compare_mode > 0)
+    if (config.texture_compare_mode != TEX_COMPARE_DEFAULT) {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, config.texture_compare_mode);
+        CHECK_GL_ERROR();
+    }
 
-    if (config.texture_lod_bias > 0)
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_LOD_BIAS, config.texture_lod_bias);
-
-    if (config.texture_min_filter > 0)
+    if (config.texture_min_filter != TEX_MIN_FILTER_DEFAULT) {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, config.texture_min_filter);
+        CHECK_GL_ERROR();
+    }
 
-    if (config.texture_mag_filter > 0)
+    if (config.texture_mag_filter != TEX_MAG_FILTER_DEFAULT) {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, config.texture_mag_filter);
+        CHECK_GL_ERROR();
+    }
 
-    if (config.texture_min_lod > 0)
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_LOD, config.texture_min_lod);
+    if (config.texture_lod_bias > 0) {
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_LOD_BIAS, config.texture_lod_bias);
+        CHECK_GL_ERROR();
+    }
 
-    if (config.texture_max_lod > 0)
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LOD, config.texture_max_lod);
+    if (config.texture_min_lod > 0) {
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_LOD, config.texture_min_lod);
+        CHECK_GL_ERROR();
+    }
 
-    if (config.texture_max_level > 0)
+    if (config.texture_max_lod > 0) {
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_LOD, config.texture_max_lod);
+        CHECK_GL_ERROR();
+    }
+
+    if (config.texture_max_level > 0) {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, config.texture_max_level);
+        CHECK_GL_ERROR();
+    }
 
-    if (config.texture_swizzle_r > 0)
+    if (config.texture_swizzle_r != TEX_SWIZZLE_DEFAULT) {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_R, config.texture_swizzle_r);
+        CHECK_GL_ERROR();
+    }
 
-    if (config.texture_swizzle_g > 0)
+    if (config.texture_swizzle_g != TEX_SWIZZLE_DEFAULT) {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_G, config.texture_swizzle_g);
+        CHECK_GL_ERROR();
+    }
 
-    if (config.texture_swizzle_b > 0)
+    if (config.texture_swizzle_b != TEX_SWIZZLE_DEFAULT) {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, config.texture_swizzle_b);
+        CHECK_GL_ERROR();
+    }
 
-    if (config.texture_swizzle_a > 0)
+    if (config.texture_swizzle_a != TEX_SWIZZLE_DEFAULT) {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_A, config.texture_swizzle_a);
+        CHECK_GL_ERROR();
+    }
 
-    if (config.texture_wrap_s > 0)
+    if (config.texture_swizzle_rgba != TEX_SWIZZLE_DEFAULT) {
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, config.texture_swizzle_rgba);
+        CHECK_GL_ERROR();
+    }
+
+    if (config.texture_wrap_s != TEX_WRAP_DEFAULT) {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, config.texture_wrap_s);
+        CHECK_GL_ERROR();
+    }
 
-    if (config.texture_wrap_t > 0)
+    if (config.texture_wrap_t != TEX_WRAP_DEFAULT) {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, config.texture_wrap_t);
+        CHECK_GL_ERROR();
+    }
 
-    if (config.texture_wrap_r > 0)
+    if (config.texture_wrap_r != TEX_WRAP_DEFAULT) {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, config.texture_wrap_r);
+        CHECK_GL_ERROR();
+    }
 
-    CHECK_GL_ERROR();
-
-    glBindTexture(GL_TEXTURE_2D, NONE);
+    glBindTexture(GL_TEXTURE_2D, HANDLE_NONE);
 }
 
 model_t *gl::create_model(const char *model_file_path) {
@@ -273,7 +345,7 @@ void buff_vbo(
     );
     CHECK_GL_ERROR();
 
-    glBindBuffer(GL_ARRAY_BUFFER, NONE);
+    glBindBuffer(GL_ARRAY_BUFFER, HANDLE_NONE);
     CHECK_GL_ERROR();
 }
 
@@ -307,7 +379,7 @@ mesh_t *gl::create_mesh(model_t *model) {
         );
         CHECK_GL_ERROR();
 
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, NONE);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, HANDLE_NONE);
         CHECK_GL_ERROR();
     }
 
@@ -383,7 +455,7 @@ mesh_t *gl::create_mesh(model_t *model) {
         );
     }
 
-    glBindVertexArray(NONE);
+    glBindVertexArray(HANDLE_NONE);
 
     mesh_t *mesh = (mesh_t *) memalloc(sizeof(mesh_t));
 
@@ -504,10 +576,13 @@ void gl::destroy_shader_program(shader_program_t *shader) {
 
 material_t *gl::create_material(
         shader_program_t *shader,
+        COMPARE_FUNCTIONS depth_func,
         list<uniform_definition_t> *uniform_definitions
 ) {
     material_t *material = (material_t *) memalloc(sizeof(material_t));
+
     material->shader = shader;
+    material->depth_func = depth_func;
 
     list<uniform_t *> *uniforms = lists::create<uniform_t *>(uniform_definitions->length);
     for (int i = 0; i < uniform_definitions->length; ++i) {
@@ -637,8 +712,13 @@ void gl::buff_uniforms(list<uniform_t *> *uniforms) {
 }
 
 void gl::use_material(material_t *material) {
-    glUseProgram(material->shader->handle);
-    CHECK_GL_ERROR();
+    if (gl_state.current_shader_program != material->shader->handle) {
+        glUseProgram(material->shader->handle);
+        gl_state.current_shader_program = material->shader->handle;
+        CHECK_GL_ERROR();
+    }
+
+    set_depth_func(material->depth_func);
 
     gl::buff_uniforms(material->uniforms);
 }
@@ -688,7 +768,7 @@ void gl::draw_mesh(mesh_t *mesh) {
         glDrawElements(GL_TRIANGLES, mesh->model->indices->length, GL_UNSIGNED_INT, null);
         CHECK_GL_ERROR();
 
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, NONE);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, HANDLE_NONE);
         CHECK_GL_ERROR();
     } else {
         glDrawArrays(GL_TRIANGLES, 0, mesh->model->positions->length);
@@ -697,5 +777,5 @@ void gl::draw_mesh(mesh_t *mesh) {
 
     set_vbo_enable_state(mesh, false);
 
-    glBindVertexArray(NONE);
+    glBindVertexArray(HANDLE_NONE);
 }

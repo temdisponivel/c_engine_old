@@ -11,7 +11,7 @@
 #include "stb_image.h"
 #include <collections.h>
 
-#define NONE 0
+#define HANDLE_NONE 0
 
 #define VERTEX_POSITION_ATTRIBUTE_INDEX 0
 #define VERTEX_COLOR_ATTRIBUTE_INDEX 1
@@ -66,24 +66,86 @@ typedef struct image {
     IMAGE_CHANNELS channels;
 } image_t;
 
+enum TEXTURE_DEPTH_STENCIAL_VALUES {
+    DEPTH_STENCIL_DEFAULT,
+    DEPTH_STENCIL_DEPTH_COMPONENT = GL_DEPTH_COMPONENT,
+    DEPTH_STENCIL_STENCIL_COMPONENT = GL_STENCIL_COMPONENTS,
+};
+
+enum COMPARE_FUNCTIONS {
+    COMPARE_DISABLED,
+    COMPARE_DEFAULT = COMPARE_DISABLED,
+    COMPARE_LESS = GL_LESS,
+    COMPARE_LESS_OR_EQUAL = GL_LEQUAL,
+    COMPARE_EQUAL = GL_EQUAL,
+    COMPARE_GREATER = GL_GREATER,
+    COMPARE_GREATER_OR_EQUAL = GL_GEQUAL,
+    COMPARE_DIFFERENT = GL_NOTEQUAL,
+    COMPARE_ALWAYS = GL_ALWAYS,
+    COMPARE_NEVER = GL_NEVER,
+};
+
+enum TEXTURE_COMPARE_MODE {
+    TEX_COMPARE_DEFAULT,
+    TEX_COMPARE_COMPARE_REF_TO_TEXTURE = GL_COMPARE_REF_TO_TEXTURE,
+    TEX_COMPARE_NONE = GL_NONE
+};
+
+enum TEXTURE_MIN_FILTER_VALUES {
+    TEX_MIN_FILTER_DEFAULT,
+    TEX_MIN_FILTER_NEAREST = GL_NEAREST,
+    TEX_MIN_FILTER_LINEAR = GL_LINEAR,
+    TEX_MIN_FILTER_NEAREST_MIPMAP_NEAREST = GL_NEAREST_MIPMAP_NEAREST,
+    TEX_MIN_FILTER_LINEAR_MIPMAP_NEAREST = GL_LINEAR_MIPMAP_NEAREST,
+    TEX_MIN_FILTER_NEAREST_MIPMAP_LINEAR = GL_NEAREST_MIPMAP_LINEAR,
+    TEX_MIN_FILTER_LINEAR_MIPMAP_LINEAR = GL_LINEAR_MIPMAP_LINEAR,
+};
+
+enum TEXTURE_MAG_FILTER_VALUES {
+    TEX_MAG_FILTER_DEFAULT,
+    TEX_MAG_FILTER_NEAREST = GL_NEAREST,
+    TEX_MAG_FILTER_LINEAR = GL_LINEAR,
+};
+
+enum TEXTURE_SWIZZLE_VALUES {
+    TEX_SWIZZLE_DEFAULT,
+    TEX_SWIZZLE_RED = GL_RED,
+    TEX_SWIZZLE_GREEN = GL_GREEN,
+    TEX_SWIZZLE_BLUE = GL_BLUE,
+    TEX_SWIZZLE_ALPHA = GL_ALPHA,
+    TEX_SWIZZLE_ZERO = GL_ZERO,
+    TEX_SWIZZLE_ONE = GL_ONE
+};
+
+enum TEXTURE_WRAP_VALUES {
+    TEX_WRAP_DEFAULT,
+    TEX_WRAP_CLAMP_TO_EDGE = GL_CLAMP_TO_EDGE,
+    TEX_WRAP_CLAMP_TO_BORDER = GL_CLAMP_TO_BORDER,
+    TEX_WRAP_MIRRORED_REPEAT = GL_MIRRORED_REPEAT,
+    TEX_WRAP_REPEAT = GL_REPEAT,
+    TEX_WRAP_MIRROR_CLAMP_TO_EDGE = GL_MIRROR_CLAMP_TO_EDGE,
+};
+
 typedef struct texture_config {
-    uint depth_stencil_texture_mode;
+    TEXTURE_DEPTH_STENCIAL_VALUES depth_stencil_texture_mode;
     uint texture_base_level;
-    uint texture_compare_func;
-    uint texture_compare_mode;
-    uint texture_lod_bias;
-    uint texture_min_filter;
-    uint texture_mag_filter;
-    uint texture_min_lod;
-    uint texture_max_lod;
-    uint texture_max_level;
-    uint texture_swizzle_r;
-    uint texture_swizzle_g;
-    uint texture_swizzle_b;
-    uint texture_swizzle_a;
-    uint texture_wrap_s;
-    uint texture_wrap_t;
-    uint texture_wrap_r;
+    glm::vec4 texture_border_color;
+    COMPARE_FUNCTIONS texture_compare_func;
+    TEXTURE_COMPARE_MODE texture_compare_mode;
+    int texture_lod_bias;
+    TEXTURE_MIN_FILTER_VALUES texture_min_filter;
+    TEXTURE_MAG_FILTER_VALUES texture_mag_filter;
+    float texture_min_lod;
+    float texture_max_lod;
+    int texture_max_level;
+    TEXTURE_SWIZZLE_VALUES texture_swizzle_r;
+    TEXTURE_SWIZZLE_VALUES texture_swizzle_g;
+    TEXTURE_SWIZZLE_VALUES texture_swizzle_b;
+    TEXTURE_SWIZZLE_VALUES texture_swizzle_a;
+    TEXTURE_SWIZZLE_VALUES texture_swizzle_rgba;
+    TEXTURE_WRAP_VALUES texture_wrap_s;
+    TEXTURE_WRAP_VALUES texture_wrap_t;
+    TEXTURE_WRAP_VALUES texture_wrap_r;
 } texture_config_t;
 
 typedef struct texture {
@@ -169,9 +231,21 @@ typedef struct shader_program {
 typedef struct material {
     shader_program_t *shader;
     list<uniform_t*> *uniforms;
+
+    COMPARE_FUNCTIONS depth_func;
 } material_t;
 
+typedef struct graphics_state {
+    COMPARE_FUNCTIONS current_depth_func;
+    uint current_shader_program;
+} graphics_state_t;
+
+#define DEFAULT_COMPARE_FUNC GL_LESS
+
 namespace gl {
+    graphics_state_t get_graphics_state();
+    void set_depth_func(COMPARE_FUNCTIONS func);
+
     image_t *create_image(const char *image_file_path);
     void destroy_image(image_t *image);
 
@@ -202,6 +276,7 @@ namespace gl {
 
     material_t *create_material(
             shader_program_t *shader,
+            COMPARE_FUNCTIONS depth_func,
             list<uniform_definition_t> *uniform_definitions
     );
     void destroy_material(material_t *material);

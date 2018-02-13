@@ -60,7 +60,7 @@ int main(void) {
     // Needs to set this so that stb_image loads the way opengl expects it!
     stbi_set_flip_vertically_on_load(true);
 
-    image_t *image = gl::create_image("data/textures/the_witness.png");
+    image_t *image = gl::create_image("data/textures/the_witness_small.png");
 
     texture_config_t config = gl::get_default_texture_config();
     texture_t *texture = gl::create_texture(image, config);
@@ -84,7 +84,7 @@ int main(void) {
     uniform_definition_t  offset = {};
     offset.name = (char *) "offset";
     offset.type = UNIFORM_TYPE::UNIFORM_VEC2;
-    offset.default_value.vector2_value = glm::vec2(0, 0);
+    offset.default_value.vector2_value = glm::vec2(.5, .5);
 
     uniform_definition_t  wrap = {};
     wrap.name = (char *) "wrap";
@@ -100,6 +100,7 @@ int main(void) {
 
     material_t *material = gl::create_material(
             shader,
+            COMPARE_LESS,
             uniforms
     );
 
@@ -118,30 +119,31 @@ int main(void) {
         glfwGetFramebufferSize(window, &width, &height);
         ratio = width / (float) height;
         glViewport(0, 0, width, height);
+        glClear(GL_DEPTH_BUFFER_BIT);
         glClear(GL_COLOR_BUFFER_BIT);
-
-        m = glm::mat4();
-
-        m = glm::translate(m, glm::vec3(0, 0, -10));;
-
-//        m = glm::rotate(m, (float) (glfwGetTime()), glm::vec3(0, 0, 1));
-//        m = glm::rotate(m, (float) (glfwGetTime()), glm::vec3(1, 0, 0));
-//        m = glm::rotate(m, (float) (glfwGetTime()), glm::vec3(0, 1, 0));
-
-        m = glm::scale(m, glm::vec3(2, 2, 2));
 
         p = glm::perspective(45.f, ratio, 0.1f, 100.f);
         v = glm::lookAt(glm::vec3(), glm::vec3(0, 0, -1), glm::vec3(0, 1, 0));
 
-        mvp = p * v * m;
+        for (int i = 0; i < 3; ++i) {
+            m = glm::mat4();
 
-        if (mvp_uni != null)
-            mvp_uni->current_value.matrix_value = mvp;
+            m = glm::translate(m, glm::vec3(0, 0, -1 - (i * .2f)));
 
-        //print_mat4(material->uniforms->items[0]->current_value.matrix_value);
+            m = glm::rotate(m, (float) (glfwGetTime() + i), glm::vec3(0, 0, 1));
+            m = glm::rotate(m, (float) (glfwGetTime() + i), glm::vec3(1, 0, 0));
+            m = glm::rotate(m, (float) (glfwGetTime() + i), glm::vec3(0, 1, 0));
 
-        gl::use_material(material);
-        gl::draw_mesh(mesh);
+            mvp = p * v * m;
+
+            if (mvp_uni != null)
+                mvp_uni->current_value.matrix_value = mvp;
+
+            //print_mat4(material->uniforms->items[0]->current_value.matrix_value);
+            gl::use_material(material);
+            gl::draw_mesh(mesh);
+        }
+
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
