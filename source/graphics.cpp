@@ -574,40 +574,48 @@ void gl::destroy_shader_program(shader_program_t *shader) {
     memfree(shader);
 }
 
+void gl::create_and_add_uniform(
+        material_t *material,
+        uniform_definition_t uniform_def
+) {
+    ENSURE(uniform_def.name != null);
+
+    int handle = glGetUniformLocation(material->shader->handle, uniform_def.name);
+    CHECK_GL_ERROR();
+
+    if (handle < 0) {
+        WARNINGF("UNIFORM '%s' NOT FOUND!" FILE_LINE, uniform_def.name);
+    }
+
+    uniform_t *uniform = (uniform_t *) memalloc(sizeof(uniform_t));
+
+    uniform->handle = handle;
+    uniform->name_hash = hash(uniform_def.name);
+    uniform->type = uniform_def.type;
+    uniform->current_value = uniform_def.default_value;
+
+    lists::add(material->uniforms, uniform);
+}
+
 material_t *gl::create_material(
         shader_program_t *shader,
         COMPARE_FUNCTIONS depth_func,
         list<uniform_definition_t> *uniform_definitions
 ) {
     material_t *material = (material_t *) memalloc(sizeof(material_t));
+    list<uniform_t *> *uniforms = lists::create<uniform_t *>(uniform_definitions->length);
 
     material->shader = shader;
     material->depth_func = depth_func;
-
-    list<uniform_t *> *uniforms = lists::create<uniform_t *>(uniform_definitions->length);
-    for (int i = 0; i < uniform_definitions->length; ++i) {
-        uniform_definition_t uniform_def = uniform_definitions->items[i];
-        uniform_t *uniform = (uniform_t *) memalloc(sizeof(uniform_t));
-
-        ENSURE(uniform_def.name != null);
-
-        int handle = glGetUniformLocation(shader->handle, uniform_def.name);
-        CHECK_GL_ERROR();
-
-        if (handle < 0) {
-            WARNINGF("UNIFORM '%s' NOT FOUND!" FILE_LINE, uniform_def.name);
-        }
-
-        uniform->handle = handle;
-        uniform->name_hash = hash(uniform_def.name);
-        uniform->type = uniform_def.type;
-        uniform->current_value = uniform_def.default_value;
-
-        lists::add(uniforms, uniform);
-    }
-
     material->shader = shader;
     material->uniforms = uniforms;
+
+    for (int i = 0; i < uniform_definitions->length; ++i) {
+        uniform_definition_t uniform_def = uniform_definitions->items[i];
+        create_and_add_uniform(material, uniform_def);
+    }
+
+    return material;
 }
 
 void gl::destroy_material(material_t *material) {
@@ -617,6 +625,102 @@ void gl::destroy_material(material_t *material) {
     }
     lists::destroy(material->uniforms);
     memfree(material);
+}
+
+void gl::set_uniform_bool(material_t *material, const char *name, bool value){
+    uniform_t *uniform = find_uniform_by_name(name, material);
+    ENSURE(uniform != null);
+    uniform->current_value.bool_value = value;
+}
+
+void gl::set_uniform_byte(material_t *material, const char *name, byte value){
+    uniform_t *uniform = find_uniform_by_name(name, material);
+    ENSURE(uniform != null);
+    uniform->current_value.byte_value = value;
+}
+
+void gl::set_uniform_ubyte(material_t *material, const char *name, ubyte value){
+    uniform_t *uniform = find_uniform_by_name(name, material);
+    ENSURE(uniform != null);
+    uniform->current_value.ubyte_value = value;
+}
+
+void gl::set_uniform_short(material_t *material, const char *name, short value){
+    uniform_t *uniform = find_uniform_by_name(name, material);
+    ENSURE(uniform != null);
+    uniform->current_value.short_value = value;
+}
+
+void gl::set_uniform_ushort(material_t *material, const char *name, ushort value){
+    uniform_t *uniform = find_uniform_by_name(name, material);
+    ENSURE(uniform != null);
+    uniform->current_value.ushort_value = value;
+}
+
+void gl::set_uniform_int(material_t *material, const char *name, int value){
+    uniform_t *uniform = find_uniform_by_name(name, material);
+    ENSURE(uniform != null);
+    uniform->current_value.int_value = value;
+}
+
+void gl::set_uniform_uint(material_t *material, const char *name, uint value){
+    uniform_t *uniform = find_uniform_by_name(name, material);
+    ENSURE(uniform != null);
+    uniform->current_value.uint_value = value;
+}
+
+void gl::set_uniform_long(material_t *material, const char *name, long value){
+    uniform_t *uniform = find_uniform_by_name(name, material);
+    ENSURE(uniform != null);
+    uniform->current_value.long_value = value;
+}
+
+void gl::set_uniform_float(material_t *material, const char *name, float value){
+    uniform_t *uniform = find_uniform_by_name(name, material);
+    ENSURE(uniform != null);
+    uniform->current_value.float_value = value;
+}
+
+void gl::set_uniform_double(material_t *material, const char *name, double value){
+    uniform_t *uniform = find_uniform_by_name(name, material);
+    ENSURE(uniform != null);
+    uniform->current_value.double_value = value;
+}
+
+void gl::set_uniform_vec2(material_t *material, const char *name, glm::vec2 value){
+    uniform_t *uniform = find_uniform_by_name(name, material);
+    ENSURE(uniform != null);
+    uniform->current_value.vector2_value = value;
+}
+
+void gl::set_uniform_vec3(material_t *material, const char *name, glm::vec3 value){
+    uniform_t *uniform = find_uniform_by_name(name, material);
+    ENSURE(uniform != null);
+    uniform->current_value.vector3_value = value;
+}
+
+void gl::set_uniform_vec4(material_t *material, const char *name, glm::vec4 value){
+    uniform_t *uniform = find_uniform_by_name(name, material);
+    ENSURE(uniform != null);
+    uniform->current_value.vector4_value = value;
+}
+
+void gl::set_uniform_matrix(material_t *material, const char *name, glm::mat4 value){
+    uniform_t *uniform = find_uniform_by_name(name, material);
+    ENSURE(uniform != null);
+    uniform->current_value.matrix_value = value;
+}
+
+void gl::set_uniform_texture(material_t *material, const char *name, texture_t *value){
+    uniform_t *uniform = find_uniform_by_name(name, material);
+    ENSURE(uniform != null);
+    uniform->current_value.texture_value.texture = value;
+}
+
+void gl::set_uniform_texture_property(material_t *material, const char *name, texture_material_propery_t value){
+    uniform_t *uniform = find_uniform_by_name(name, material);
+    ENSURE(uniform != null);
+    uniform->current_value.texture_value = value;
 }
 
 uniform_t *gl::find_uniform_by_name(const char *name, material_t *material) {

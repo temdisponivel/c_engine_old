@@ -61,9 +61,11 @@ int main(void) {
     stbi_set_flip_vertically_on_load(true);
 
     image_t *image = gl::create_image("data/textures/the_witness_small.png");
+    image_t *image_large = gl::create_image("data/textures/the_witness.png");
 
     texture_config_t config = gl::get_default_texture_config();
     texture_t *texture = gl::create_texture(image, config);
+    texture_t *texture_large = gl::create_texture(image_large, config);
 
     uniform_definition_t mvp_uniform = {};
     mvp_uniform.name = (char *) "MVP";
@@ -107,9 +109,6 @@ int main(void) {
     model_t *model = gl::create_model("data/models/plane.cm");
     mesh_t *mesh = gl::create_mesh(model);
 
-    uniform_t *mvp_uni = gl::find_uniform_by_name("MVP", material);
-    ENSURE(mvp_uni != null);
-
     while (!glfwWindowShouldClose(window)) {
 
         float ratio;
@@ -136,8 +135,13 @@ int main(void) {
 
             mvp = p * v * m;
 
-            if (mvp_uni != null)
-                mvp_uni->current_value.matrix_value = mvp;
+            gl::set_uniform_matrix(material, "MVP", mvp);
+
+            if (glfwGetKey(window, GLFW_KEY_L)) {
+                gl::set_uniform_texture(material, "my_texture", texture_large);
+            } else if (glfwGetKey(window, GLFW_KEY_S)) {
+                gl::set_uniform_texture(material, "my_texture", texture);
+            }
 
             //print_mat4(material->uniforms->items[0]->current_value.matrix_value);
             gl::use_material(material);

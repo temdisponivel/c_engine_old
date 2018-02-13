@@ -274,12 +274,33 @@ namespace gl {
 
     void destroy_shader_program(shader_program_t *shader);
 
+    void create_and_add_uniform(
+            material_t *material,
+            uniform_definition_t uniform_def
+    );
     material_t *create_material(
             shader_program_t *shader,
             COMPARE_FUNCTIONS depth_func,
             list<uniform_definition_t> *uniform_definitions
     );
     void destroy_material(material_t *material);
+
+    void set_uniform_bool(material_t *material, const char *name, bool value);
+    void set_uniform_byte(material_t *material, const char *name, byte value);
+    void set_uniform_ubyte(material_t *material, const char *name, ubyte value);
+    void set_uniform_short(material_t *material, const char *name, short value);
+    void set_uniform_ushort(material_t *material, const char *name, ushort value);
+    void set_uniform_int(material_t *material, const char *name, int value);
+    void set_uniform_uint(material_t *material, const char *name, uint value);
+    void set_uniform_long(material_t *material, const char *name, long value);
+    void set_uniform_float(material_t *material, const char *name, float value);
+    void set_uniform_double(material_t *material, const char *name, double value);
+    void set_uniform_vec2(material_t *material, const char *name, glm::vec2 value);
+    void set_uniform_vec3(material_t *material, const char *name, glm::vec3 value);
+    void set_uniform_vec4(material_t *material, const char *name, glm::vec4 value);
+    void set_uniform_matrix(material_t *material, const char *name, glm::mat4 value);
+    void set_uniform_texture(material_t *material, const char *name, texture_t *value);
+    void set_uniform_texture_property(material_t *material, const char *name, texture_material_propery_t value);
 
     uniform_t *find_uniform_by_name(const char *name, material_t *material);
 
