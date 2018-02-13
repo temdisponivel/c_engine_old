@@ -123,6 +123,7 @@ int main(void) {
     camera_t *ortho = create_ortho_camera(-1, 1, -1, 1, -100, 100);
 
     camera_t *camera = ortho;
+    use_camera(camera);
 
     float dt = 0;
     float start_time = 0;
@@ -134,6 +135,8 @@ int main(void) {
                 camera = ortho;
             else
                 camera = perspective;
+
+            use_camera(camera);
         }
 
         dt = end_time - start_time;
@@ -159,10 +162,10 @@ int main(void) {
 
             transform->position = glm::vec3(0, 0, -1);
 
-            //transform->rotation = glm::quat();
-            //transform->rotation *= glm::angleAxis((float) (glfwGetTime() + i), glm::vec3(0, 0, 1));
-            //transform->rotation *= glm::angleAxis((float) (glfwGetTime() + i), glm::vec3(1, 0, 0));
-            //transform->rotation *= glm::angleAxis((float) (glfwGetTime() + i), glm::vec3(0, 1, 0));
+            transform->rotation = glm::quat();
+            transform->rotation *= glm::angleAxis((float) (glfwGetTime() + i), glm::vec3(0, 0, 1));
+            transform->rotation *= glm::angleAxis((float) (glfwGetTime() + i), glm::vec3(1, 0, 0));
+            transform->rotation *= glm::angleAxis((float) (glfwGetTime() + i), glm::vec3(0, 1, 0));
 
             if (glfwGetKey(window, GLFW_KEY_W)) {
                 camera->entity->transform->position.z -= dt;
@@ -195,14 +198,8 @@ int main(void) {
             } else if (glfwGetKey(window, GLFW_KEY_DOWN)) {
                 look_at(transform, world_down());
             } else if (glfwGetKey(window, GLFW_KEY_R)) {
-                look_at(transform, world_backwards());
+                look_at(transform, world_forward());
             }
-
-            update_transform_matrix(transform);
-            update_camera_matrix(camera);
-            glm::mat4 mvp = camera->_matrix * transform->_matrix;
-
-            set_uniform_matrix(material, "MVP", mvp);
 
             if (glfwGetKey(window, GLFW_KEY_L)) {
                 set_uniform_texture(material, "my_texture", texture_large);

@@ -548,17 +548,30 @@ void create_and_add_uniform(
     CHECK_GL_ERROR();
 
     if (handle < 0) {
-        WARNINGF("UNIFORM '%s' NOT FOUND!" FILE_LINE, uniform_def.name);
+        WARNINGF("UNIFORM '%s' NOT FOUND! IT IS EITHER UNDECLARED OR UNUSED!" FILE_LINE, uniform_def.name);
+    } else {
+        // Only create if it doesn't exists
+        uniform_t *existing_uniform = find_uniform_by_name(uniform_def.name, material);
+        if (existing_uniform == null) {
+            uniform_t *uniform = (uniform_t *) memalloc(sizeof(uniform_t));
+
+            uniform->handle = handle;
+            uniform->name_hash = hash(uniform_def.name);
+            uniform->type = uniform_def.type;
+            uniform->current_value = uniform_def.default_value;
+
+            add(material->uniforms, uniform);
+        } else {
+            if (existing_uniform->type != uniform_def.type) {
+                MESSAGEF(
+                        "Attempt to recreate uniform '%s'. The previous type were: '%s', the new type is: '%s'.",
+                        uniform_def.name,
+                        existing_uniform->type,
+                        uniform_def.type
+                );
+            }
+        }
     }
-
-    uniform_t *uniform = (uniform_t *) memalloc(sizeof(uniform_t));
-
-    uniform->handle = handle;
-    uniform->name_hash = hash(uniform_def.name);
-    uniform->type = uniform_def.type;
-    uniform->current_value = uniform_def.default_value;
-
-    add(material->uniforms, uniform);
 }
 
 material_t *create_material(
@@ -579,6 +592,27 @@ material_t *create_material(
         create_and_add_uniform(material, uniform_def);
     }
 
+    // Try to create default uniforms for the uniforms that the engine supplies regardless of declaration
+
+    uniform_definition_t matrices_defition = {};
+    matrices_defition.type = UNIFORM_TYPE::UNIFORM_MAT4;
+    matrices_defition.default_value.matrix_value = glm::mat4();
+
+    matrices_defition.name = (char *) "MVP";
+    create_and_add_uniform(material, matrices_defition);
+
+    matrices_defition.name = (char *) "PROJECTION";
+    create_and_add_uniform(material, matrices_defition);
+
+    matrices_defition.name = (char *) "VIEW";
+    create_and_add_uniform(material, matrices_defition);
+
+    matrices_defition.name = (char *) "VP";
+    create_and_add_uniform(material, matrices_defition);
+
+    matrices_defition.name = (char *) "MODEL";
+    create_and_add_uniform(material, matrices_defition);
+
     return material;
 }
 
@@ -591,100 +625,100 @@ void destroy_material(material_t *material) {
     memfree(material);
 }
 
-void set_uniform_bool(material_t *material, const char *name, bool value){
+void set_uniform_bool(material_t *material, const char *name, bool value) {
     uniform_t *uniform = find_uniform_by_name(name, material);
-    ENSURE(uniform != null);
-    uniform->current_value.bool_value = value;
+    if (uniform != null)
+        uniform->current_value.bool_value = value;
 }
 
-void set_uniform_byte(material_t *material, const char *name, byte value){
+void set_uniform_byte(material_t *material, const char *name, byte value) {
     uniform_t *uniform = find_uniform_by_name(name, material);
-    ENSURE(uniform != null);
-    uniform->current_value.byte_value = value;
+    if (uniform != null)
+        uniform->current_value.byte_value = value;
 }
 
-void set_uniform_ubyte(material_t *material, const char *name, ubyte value){
+void set_uniform_ubyte(material_t *material, const char *name, ubyte value) {
     uniform_t *uniform = find_uniform_by_name(name, material);
-    ENSURE(uniform != null);
-    uniform->current_value.ubyte_value = value;
+    if (uniform != null)
+        uniform->current_value.ubyte_value = value;
 }
 
-void set_uniform_short(material_t *material, const char *name, short value){
+void set_uniform_short(material_t *material, const char *name, short value) {
     uniform_t *uniform = find_uniform_by_name(name, material);
-    ENSURE(uniform != null);
-    uniform->current_value.short_value = value;
+    if (uniform != null)
+        uniform->current_value.short_value = value;
 }
 
-void set_uniform_ushort(material_t *material, const char *name, ushort value){
+void set_uniform_ushort(material_t *material, const char *name, ushort value) {
     uniform_t *uniform = find_uniform_by_name(name, material);
-    ENSURE(uniform != null);
-    uniform->current_value.ushort_value = value;
+    if (uniform != null)
+        uniform->current_value.ushort_value = value;
 }
 
-void set_uniform_int(material_t *material, const char *name, int value){
+void set_uniform_int(material_t *material, const char *name, int value) {
     uniform_t *uniform = find_uniform_by_name(name, material);
-    ENSURE(uniform != null);
-    uniform->current_value.int_value = value;
+    if (uniform != null)
+        uniform->current_value.int_value = value;
 }
 
-void set_uniform_uint(material_t *material, const char *name, uint value){
+void set_uniform_uint(material_t *material, const char *name, uint value) {
     uniform_t *uniform = find_uniform_by_name(name, material);
-    ENSURE(uniform != null);
-    uniform->current_value.uint_value = value;
+    if (uniform != null)
+        uniform->current_value.uint_value = value;
 }
 
-void set_uniform_long(material_t *material, const char *name, long value){
+void set_uniform_long(material_t *material, const char *name, long value) {
     uniform_t *uniform = find_uniform_by_name(name, material);
-    ENSURE(uniform != null);
-    uniform->current_value.long_value = value;
+    if (uniform != null)
+        uniform->current_value.long_value = value;
 }
 
-void set_uniform_float(material_t *material, const char *name, float value){
+void set_uniform_float(material_t *material, const char *name, float value) {
     uniform_t *uniform = find_uniform_by_name(name, material);
-    ENSURE(uniform != null);
-    uniform->current_value.float_value = value;
+    if (uniform != null)
+        uniform->current_value.float_value = value;
 }
 
-void set_uniform_double(material_t *material, const char *name, double value){
+void set_uniform_double(material_t *material, const char *name, double value) {
     uniform_t *uniform = find_uniform_by_name(name, material);
-    ENSURE(uniform != null);
-    uniform->current_value.double_value = value;
+    if (uniform != null)
+        uniform->current_value.double_value = value;
 }
 
-void set_uniform_vec2(material_t *material, const char *name, glm::vec2 value){
+void set_uniform_vec2(material_t *material, const char *name, glm::vec2 value) {
     uniform_t *uniform = find_uniform_by_name(name, material);
-    ENSURE(uniform != null);
-    uniform->current_value.vector2_value = value;
+    if (uniform != null)
+        uniform->current_value.vector2_value = value;
 }
 
-void set_uniform_vec3(material_t *material, const char *name, glm::vec3 value){
+void set_uniform_vec3(material_t *material, const char *name, glm::vec3 value) {
     uniform_t *uniform = find_uniform_by_name(name, material);
-    ENSURE(uniform != null);
-    uniform->current_value.vector3_value = value;
+    if (uniform != null)
+        uniform->current_value.vector3_value = value;
 }
 
-void set_uniform_vec4(material_t *material, const char *name, glm::vec4 value){
+void set_uniform_vec4(material_t *material, const char *name, glm::vec4 value) {
     uniform_t *uniform = find_uniform_by_name(name, material);
-    ENSURE(uniform != null);
-    uniform->current_value.vector4_value = value;
+    if (uniform != null)
+        uniform->current_value.vector4_value = value;
 }
 
-void set_uniform_matrix(material_t *material, const char *name, glm::mat4 value){
+void set_uniform_matrix(material_t *material, const char *name, glm::mat4 value) {
     uniform_t *uniform = find_uniform_by_name(name, material);
-    ENSURE(uniform != null);
-    uniform->current_value.matrix_value = value;
+    if (uniform != null)
+        uniform->current_value.matrix_value = value;
 }
 
-void set_uniform_texture(material_t *material, const char *name, texture_t *value){
+void set_uniform_texture(material_t *material, const char *name, texture_t *value) {
     uniform_t *uniform = find_uniform_by_name(name, material);
-    ENSURE(uniform != null);
-    uniform->current_value.texture_value.texture = value;
+    if (uniform != null)
+        uniform->current_value.texture_value.texture = value;
 }
 
-void set_uniform_texture_property(material_t *material, const char *name, texture_material_propery_t value){
+void set_uniform_texture_property(material_t *material, const char *name, texture_material_propery_t value) {
     uniform_t *uniform = find_uniform_by_name(name, material);
-    ENSURE(uniform != null);
-    uniform->current_value.texture_value = value;
+    if (uniform != null)
+        uniform->current_value.texture_value = value;
 }
 
 uniform_t *find_uniform_by_name(const char *name, material_t *material) {
@@ -826,15 +860,26 @@ void prepare_material_to_draw(material_t *material) {
 
     set_depth_func(material->depth_func);
 
+    // set camera matrices
+    set_uniform_matrix(material, "PROJECTION", gl_state.current_camera->projection);
+    set_uniform_matrix(material, "VIEW", gl_state.current_camera->view);
+    set_uniform_matrix(material, "VP", gl_state.current_camera->_matrix);
+
     buff_uniforms(material->uniforms);
 }
 
 void prepare_to_draw(mesh_renderer_t *renderer) {
-
-    // TODO: maybe flag this as already prepare to prevent preparing unecessaraly?!
+    // TODO: maybe flag this as already prepare to prevent preparing unnecessarily?!
     update_transform_matrix(renderer->entity->transform);
 
     material_t *material = renderer->material;
+
+    // set mesh matrices
+    set_uniform_matrix(material, "MODEL", renderer->entity->transform->_matrix);
+
+    glm::mat4 mvp = gl_state.current_camera->_matrix * renderer->entity->transform->_matrix;
+    set_uniform_matrix(material, "MVP", mvp);
+
     prepare_material_to_draw(material);
 }
 
@@ -902,6 +947,10 @@ void set_vbo_enable_state(mesh_t *mesh, bool state) {
 }
 
 void draw_renderers(list<mesh_renderer_t *> *renderers) {
+    ENSURE(gl_state.current_camera != null);
+
+    update_camera_matrix(gl_state.current_camera);
+
     for (int i = 0; i < renderers->length; ++i) {
         draw_renderer(renderers->items[i]);
     }
@@ -1007,4 +1056,10 @@ void update_camera_matrix(camera_t *camera) {
 
     camera->view = glm::lookAt(trans->position, center, world_up());
     camera->_matrix = camera->projection * camera->view;
+}
+
+void use_camera(camera_t *camera) {
+    if (gl_state.current_camera != camera) {
+        gl_state.current_camera = camera;
+    }
 }

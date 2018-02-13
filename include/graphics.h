@@ -236,11 +236,6 @@ typedef struct material {
     COMPARE_FUNCTIONS depth_func;
 } material_t;
 
-typedef struct graphics_state {
-    COMPARE_FUNCTIONS current_depth_func;
-    uint current_shader_program;
-} graphics_state_t;
-
 typedef struct mesh_renderer {
     entity_t *entity;
     material_t *material;
@@ -281,6 +276,12 @@ typedef struct camera {
         perspective_camera_t perspective;
     };
 } camera_t;
+
+typedef struct graphics_state {
+    COMPARE_FUNCTIONS current_depth_func;
+    uint current_shader_program;
+    camera_t *current_camera;
+} graphics_state_t;
 
 #define DEFAULT_COMPARE_FUNC GL_LESS
 
@@ -407,5 +408,7 @@ camera_t *create_ortho_camera(
 void destroy_camera(camera_t *camera);
 
 void update_camera_matrix(camera_t *camera);
+
+void use_camera(camera_t *camera);
 
 #endif //CYNICAL_ENGINE_CPP_GRAPHICS_H
