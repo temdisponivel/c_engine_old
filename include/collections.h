@@ -16,38 +16,35 @@ struct list {
     uint capacity;
 };
 
-namespace lists {
+LIST_TEMPLATE
+list<T> *create_list(uint capacity);
 
-    LIST_TEMPLATE
-    list<T> *create(uint capacity);
+LIST_TEMPLATE
+void destroy_list(list<T> *list);
 
-    LIST_TEMPLATE
-    void destroy(list<T> *list);
+LIST_TEMPLATE
+void expand(list<T> *list);
 
-    LIST_TEMPLATE
-    void expand(list<T> *list);
+LIST_TEMPLATE
+void add(list<T> *list, T item);
 
-    LIST_TEMPLATE
-    void add(list<T> *list, T item);
+LIST_TEMPLATE
+void remove_at(list<T> *list, uint index);
 
-    LIST_TEMPLATE
-    void remove_at(list<T> *list, uint index);
+LIST_TEMPLATE
+int index_of(list<T> *list, T item);
 
-    LIST_TEMPLATE
-    int index_of(list<T> *list, T item);
+LIST_TEMPLATE
+void remove(list<T> *list, T item);
 
-    LIST_TEMPLATE
-    void remove(list<T> *list, T item);
-
-    LIST_TEMPLATE
-    bool null_or_empty(list<T> *list);
-}
+LIST_TEMPLATE
+bool null_or_empty(list<T> *list);
 
 // IMPLEMENTATION
 
 LIST_TEMPLATE
-list<T> *lists::create(uint capacity) {
-    list<T> *list = (struct list<T>*) memalloc(sizeof(struct list<T>));
+list<T> *create_list(uint capacity) {
+    list<T> *list = (struct list<T> *) memalloc(sizeof(struct list<T>));
     list->items = (T *) memalloc(sizeof(T) * capacity);
     list->capacity = capacity;
     list->length = 0;
@@ -55,13 +52,13 @@ list<T> *lists::create(uint capacity) {
 }
 
 LIST_TEMPLATE
-void lists::destroy(list<T> *list) {
+void destroy_list(list<T> *list) {
     memfree(list->items);
     memfree(list);
 }
 
 LIST_TEMPLATE
-void lists::expand(list<T> *list) {
+void expand(list <T> *list) {
     uint new_capacity = list->capacity * 2;
     T *items = (T *) memalloc(sizeof(T) * new_capacity);
     memcopy(items, list->items, list->length * sizeof(T));
@@ -71,14 +68,14 @@ void lists::expand(list<T> *list) {
 }
 
 LIST_TEMPLATE
-void lists::add(list<T> *list, T item) {
+void add(list <T> *list, T item) {
     if (list->length >= list->capacity - 1)
         expand(list);
     list->items[list->length++] = item;
 }
 
 LIST_TEMPLATE
-void lists::remove_at(list<T> *list, uint index) {
+void remove_at(list <T> *list, uint index) {
     if (index >= list->length)
         return;
 
@@ -90,7 +87,7 @@ void lists::remove_at(list<T> *list, uint index) {
 }
 
 LIST_TEMPLATE
-int lists::index_of(list<T> *list, T item) {
+int index_of(list <T> *list, T item) {
     for (int i = 0; i < list->length; ++i) {
         T list_item = list->items[i];
         if (list_item == item)
@@ -100,14 +97,14 @@ int lists::index_of(list<T> *list, T item) {
 }
 
 LIST_TEMPLATE
-void lists::remove(list<T> *list, T item) {
+void remove(list <T> *list, T item) {
     int index_of = index_of(list, item);
     if (index_of >= 0)
         remove_at(list, index_of);
 }
 
 LIST_TEMPLATE
-bool lists::null_or_empty(list<T> *list) {
+bool null_or_empty(list <T> *list) {
     return list == null || list->length == 0;
 }
 

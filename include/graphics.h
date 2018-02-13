@@ -10,6 +10,7 @@
 #include "collections.h"
 #include "stb_image.h"
 #include <collections.h>
+#include "entities.h"
 
 #define HANDLE_NONE 0
 
@@ -230,7 +231,7 @@ typedef struct shader_program {
 
 typedef struct material {
     shader_program_t *shader;
-    list<uniform_t*> *uniforms;
+    list<uniform_t *> *uniforms;
 
     COMPARE_FUNCTIONS depth_func;
 } material_t;
@@ -240,75 +241,171 @@ typedef struct graphics_state {
     uint current_shader_program;
 } graphics_state_t;
 
+typedef struct mesh_renderer {
+    entity_t *entity;
+    material_t *material;
+    mesh_t *mesh;
+    bool should_be_drawn;
+} mesh_renderer_t;
+
+enum CAMERA_TYPE {
+    ORTHO,
+    PERSPECTIVE,
+};
+
+typedef struct perspective_camera {
+    float field_of_view;
+    float aspect_ratio;
+    float near_plane;
+    float far_plane;
+} perspective_camera_t;
+
+typedef struct orthogonal_camera {
+    float left;
+    float right;
+    float bottom;
+    float top;
+    float near_plane;
+    float far_plane;
+} orthogonal_camera_t;
+
+typedef struct camera {
+    entity_t *entity;
+    glm::mat4 view;
+    glm::mat4 projection;
+    glm::mat4 _matrix;
+    CAMERA_TYPE type;
+
+    union {
+        orthogonal_camera_t ortho;
+        perspective_camera_t perspective;
+    };
+} camera_t;
+
 #define DEFAULT_COMPARE_FUNC GL_LESS
 
-namespace gl {
-    graphics_state_t get_graphics_state();
-    void set_depth_func(COMPARE_FUNCTIONS func);
+graphics_state_t get_graphics_state();
 
-    image_t *create_image(const char *image_file_path);
-    void destroy_image(image_t *image);
+void set_depth_func(COMPARE_FUNCTIONS func);
 
-    texture_t *create_texture(image_t *image, texture_config_t config);
-    void destroy_texture(texture_t *texture);
-    texture_config_t get_default_texture_config();
-    void buff_texture_config_to_gl(texture_t *texture);
+void set_vbo_enable_state(mesh_t *mesh, bool state);
 
-    model_t *create_model(const char *model_file_path);
-    void destroy_model(model_t *model);
+image_t *create_image(const char *image_file_path);
 
-    mesh_t *create_mesh(model_t *model);
-    void destroy_mesh(mesh_t *mesh);
+void destroy_image(image_t *image);
 
-    shader_t *create_shader(const char *shader_code, SHADER_TYPE type);
-    void destroy_shader(shader_t *shader);
+texture_t *create_texture(image_t *image, texture_config_t config);
 
-    shader_program_t *create_shader_program(
-            shader_t vertex_shader,
-            shader_t fragment_shader,
-            const char *vertex_position_name,
-            const char *vertex_color_name,
-            const char *vertex_tex_coord_name,
-            const char *vertex_normal_name
-    );
+void destroy_texture(texture_t *texture);
 
-    void destroy_shader_program(shader_program_t *shader);
+texture_config_t get_default_texture_config();
 
-    void create_and_add_uniform(
-            material_t *material,
-            uniform_definition_t uniform_def
-    );
-    material_t *create_material(
-            shader_program_t *shader,
-            COMPARE_FUNCTIONS depth_func,
-            list<uniform_definition_t> *uniform_definitions
-    );
-    void destroy_material(material_t *material);
+void buff_texture_config_to_gl(texture_t *texture);
 
-    void set_uniform_bool(material_t *material, const char *name, bool value);
-    void set_uniform_byte(material_t *material, const char *name, byte value);
-    void set_uniform_ubyte(material_t *material, const char *name, ubyte value);
-    void set_uniform_short(material_t *material, const char *name, short value);
-    void set_uniform_ushort(material_t *material, const char *name, ushort value);
-    void set_uniform_int(material_t *material, const char *name, int value);
-    void set_uniform_uint(material_t *material, const char *name, uint value);
-    void set_uniform_long(material_t *material, const char *name, long value);
-    void set_uniform_float(material_t *material, const char *name, float value);
-    void set_uniform_double(material_t *material, const char *name, double value);
-    void set_uniform_vec2(material_t *material, const char *name, glm::vec2 value);
-    void set_uniform_vec3(material_t *material, const char *name, glm::vec3 value);
-    void set_uniform_vec4(material_t *material, const char *name, glm::vec4 value);
-    void set_uniform_matrix(material_t *material, const char *name, glm::mat4 value);
-    void set_uniform_texture(material_t *material, const char *name, texture_t *value);
-    void set_uniform_texture_property(material_t *material, const char *name, texture_material_propery_t value);
+model_t *create_model(const char *model_file_path);
 
-    uniform_t *find_uniform_by_name(const char *name, material_t *material);
+void destroy_model(model_t *model);
 
-    void buff_uniform(uniform_t *uniform);
-    void buff_uniforms(list<uniform_t*> *uniforms);
+mesh_t *create_mesh(model_t *model);
 
-    void use_material(material_t *material);
-    void draw_mesh(mesh_t *mesh);
-}
+void destroy_mesh(mesh_t *mesh);
+
+shader_t *create_shader(const char *shader_code, SHADER_TYPE type);
+
+void destroy_shader(shader_t *shader);
+
+shader_program_t *create_shader_program(
+        shader_t vertex_shader,
+        shader_t fragment_shader,
+        const char *vertex_position_name,
+        const char *vertex_color_name,
+        const char *vertex_tex_coord_name,
+        const char *vertex_normal_name
+);
+
+void destroy_shader_program(shader_program_t *shader);
+
+void create_and_add_uniform(
+        material_t *material,
+        uniform_definition_t uniform_def
+);
+
+material_t *create_material(
+        shader_program_t *shader,
+        COMPARE_FUNCTIONS depth_func,
+        list<uniform_definition_t> *uniform_definitions
+);
+
+void destroy_material(material_t *material);
+
+void set_uniform_bool(material_t *material, const char *name, bool value);
+
+void set_uniform_byte(material_t *material, const char *name, byte value);
+
+void set_uniform_ubyte(material_t *material, const char *name, ubyte value);
+
+void set_uniform_short(material_t *material, const char *name, short value);
+
+void set_uniform_ushort(material_t *material, const char *name, ushort value);
+
+void set_uniform_int(material_t *material, const char *name, int value);
+
+void set_uniform_uint(material_t *material, const char *name, uint value);
+
+void set_uniform_long(material_t *material, const char *name, long value);
+
+void set_uniform_float(material_t *material, const char *name, float value);
+
+void set_uniform_double(material_t *material, const char *name, double value);
+
+void set_uniform_vec2(material_t *material, const char *name, glm::vec2 value);
+
+void set_uniform_vec3(material_t *material, const char *name, glm::vec3 value);
+
+void set_uniform_vec4(material_t *material, const char *name, glm::vec4 value);
+
+void set_uniform_matrix(material_t *material, const char *name, glm::mat4 value);
+
+void set_uniform_texture(material_t *material, const char *name, texture_t *value);
+
+void set_uniform_texture_property(material_t *material, const char *name, texture_material_propery_t value);
+
+uniform_t *find_uniform_by_name(const char *name, material_t *material);
+
+void buff_uniform(uniform_t *uniform);
+
+void buff_uniforms(list<uniform_t *> *uniforms);
+
+mesh_renderer_t *create_mesh_renderer(material_t *material, mesh_t *mesh);
+
+void destroy_mesh_renderer(mesh_renderer_t *renderer);
+
+void prepare_to_draw(mesh_renderer_t *renderer);
+
+void prepare_material_to_draw(material_t *material);
+
+void draw_renderer(mesh_renderer_t *renderer);
+
+void draw_renderers(list<mesh_renderer_t *> *renderers);
+
+camera_t *create_perspective_camera(
+        float field_of_view,
+        float ratio,
+        float near_plane,
+        float far_plane
+);
+
+camera_t *create_ortho_camera(
+        float left,
+        float right,
+        float bottom,
+        float top,
+        float near_plane,
+        float far_plane
+);
+
+void destroy_camera(camera_t *camera);
+
+void update_camera_matrix(camera_t *camera);
 
 #endif //CYNICAL_ENGINE_CPP_GRAPHICS_H

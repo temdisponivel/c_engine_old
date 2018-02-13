@@ -10,41 +10,7 @@
 
 #include "stb_image.h"
 
-static graphics_state_t gl_state = {};
-
-graphics_state_t gl::get_graphics_state() {
-    return gl_state;
-}
-
-void gl::set_depth_func(COMPARE_FUNCTIONS func) {
-    if (gl_state.current_depth_func != func) {
-        if (func == COMPARE_DISABLED) {
-            glDisable(GL_DEPTH_TEST);
-        } else {
-            if (gl_state.current_depth_func == COMPARE_DISABLED)
-                glEnable(GL_DEPTH_TEST);
-
-            if (func == COMPARE_DEFAULT)
-                glDepthFunc(DEFAULT_COMPARE_FUNC);
-            if (func == COMPARE_LESS)
-                glDepthFunc(GL_LESS);
-            else if (func == COMPARE_LESS_OR_EQUAL)
-                glDepthFunc(GL_LEQUAL);
-            else if (func == COMPARE_EQUAL)
-                glDepthFunc(GL_EQUAL);
-            else if (func == COMPARE_GREATER)
-                glDepthFunc(GL_GREATER);
-            else if (func == COMPARE_GREATER_OR_EQUAL)
-                glDepthFunc(GL_GEQUAL);
-            else if (func == COMPARE_DIFFERENT)
-                glDepthFunc(GL_NOTEQUAL);
-        }
-
-        gl_state.current_depth_func = func;
-    }
-}
-
-image_t *gl::create_image(const char *image_file_path) {
+image_t *create_image(const char *image_file_path) {
     image_t *image;
 
     int width, height, channels;
@@ -72,12 +38,12 @@ image_t *gl::create_image(const char *image_file_path) {
     return image;
 }
 
-void gl::destroy_image(image_t *image) {
+void destroy_image(image_t *image) {
     stbi_image_free(image->data);
     memfree(image);
 }
 
-texture_t *gl::create_texture(image_t *image, texture_config_t config) {
+texture_t *create_texture(image_t *image, texture_config_t config) {
     uint texture_handle;
 
     GLenum image_format = GL_RGB;
@@ -115,12 +81,12 @@ texture_t *gl::create_texture(image_t *image, texture_config_t config) {
     return texture;
 }
 
-void gl::destroy_texture(texture_t *texture) {
+void destroy_texture(texture_t *texture) {
     glDeleteTextures(1, &texture->handle);
     memfree(texture);
 }
 
-texture_config_t gl::get_default_texture_config() {
+texture_config_t get_default_texture_config() {
     texture_config_t default_config = {};
 
     default_config.texture_wrap_r = TEX_WRAP_MIRRORED_REPEAT;
@@ -133,7 +99,7 @@ texture_config_t gl::get_default_texture_config() {
     return default_config;
 }
 
-void gl::buff_texture_config_to_gl(texture_t *texture) {
+void buff_texture_config_to_gl(texture_t *texture) {
     texture_config_t config = texture->config;
 
     glBindTexture(GL_TEXTURE_2D, texture->handle);
@@ -236,14 +202,14 @@ void gl::buff_texture_config_to_gl(texture_t *texture) {
     glBindTexture(GL_TEXTURE_2D, HANDLE_NONE);
 }
 
-model_t *gl::create_model(const char *model_file_path) {
+model_t *create_model(const char *model_file_path) {
     // TODO: optimize this!!!
 
-    list<float> *positions = lists::create<float>(256);
-    list<float> *colors = lists::create<float>(256);
-    list<float> *tex_coords = lists::create<float>(256);
-    list<float> *normals = lists::create<float>(256);
-    list<int> *indices = lists::create<int>(256);
+    list<float> *positions = create_list<float>(256);
+    list<float> *colors = create_list<float>(256);
+    list<float> *tex_coords = create_list<float>(256);
+    list<float> *normals = create_list<float>(256);
+    list<int> *indices = create_list<int>(256);
 
     const char line_buffer[256] = {};
 
@@ -254,34 +220,34 @@ model_t *gl::create_model(const char *model_file_path) {
         if (strcmp(line_buffer, "vp") == 0) {
             float x, y, z;
             if (fscanf(file, "%f %f %f\n", &x, &y, &z)) {
-                lists::add<float>(positions, x);
-                lists::add<float>(positions, y);
-                lists::add<float>(positions, z);
+                add<float>(positions, x);
+                add<float>(positions, y);
+                add<float>(positions, z);
             }
         } else if (strcmp(line_buffer, "vc") == 0) {
             float r, g, b;
             if (fscanf(file, "%f %f %f\n", &r, &g, &b)) {
-                lists::add<float>(colors, r);
-                lists::add<float>(colors, g);
-                lists::add<float>(colors, b);
+                add<float>(colors, r);
+                add<float>(colors, g);
+                add<float>(colors, b);
             }
         } else if (strcmp(line_buffer, "vt") == 0) {
             float x, y;
             if (fscanf(file, "%f %f\n", &x, &y)) {
-                lists::add<float>(tex_coords, x);
-                lists::add<float>(tex_coords, y);
+                add<float>(tex_coords, x);
+                add<float>(tex_coords, y);
             }
         } else if (strcmp(line_buffer, "vn") == 0) {
             float x, y, z;
             if (fscanf(file, "%f %f %f\n", &x, &y, &z)) {
-                lists::add<float>(normals, x);
-                lists::add<float>(normals, y);
-                lists::add<float>(normals, z);
+                add<float>(normals, x);
+                add<float>(normals, y);
+                add<float>(normals, z);
             }
         } else if (strcmp(line_buffer, "vi") == 0) {
             int indice;
             if (fscanf(file, "%i\n", &indice)) {
-                lists::add<int>(indices, indice);
+                add<int>(indices, indice);
             }
         }
     }
@@ -300,16 +266,14 @@ model_t *gl::create_model(const char *model_file_path) {
     return model;
 }
 
-void gl::destroy_model(model_t *mesh) {
-
-    lists::destroy(mesh->positions);
-    lists::destroy(mesh->colors);
-    lists::destroy(mesh->tex_coords);
-    lists::destroy(mesh->normals);
-    lists::destroy(mesh->indices);
+void destroy_model(model_t *mesh) {
+    destroy_list(mesh->positions);
+    destroy_list(mesh->colors);
+    destroy_list(mesh->tex_coords);
+    destroy_list(mesh->normals);
+    destroy_list(mesh->indices);
 
     memfree(mesh);
-
 }
 
 void buff_vbo(
@@ -349,7 +313,7 @@ void buff_vbo(
     CHECK_GL_ERROR();
 }
 
-mesh_t *gl::create_mesh(model_t *model) {
+mesh_t *create_mesh(model_t *model) {
     uint vao;
 
     uint indices_vbo = 0;
@@ -364,7 +328,7 @@ mesh_t *gl::create_mesh(model_t *model) {
     glBindVertexArray(vao);
     CHECK_GL_ERROR();
 
-    if (!lists::null_or_empty(model->indices)) {
+    if (!null_or_empty(model->indices)) {
         glGenBuffers(1, &indices_vbo);
         CHECK_GL_ERROR();
 
@@ -383,7 +347,7 @@ mesh_t *gl::create_mesh(model_t *model) {
         CHECK_GL_ERROR();
     }
 
-    if (!lists::null_or_empty(model->positions)) {
+    if (!null_or_empty(model->positions)) {
         glGenBuffers(1, &position_vbo);
         CHECK_GL_ERROR();
 
@@ -401,7 +365,7 @@ mesh_t *gl::create_mesh(model_t *model) {
         );
     }
 
-    if (!lists::null_or_empty(model->colors)) {
+    if (!null_or_empty(model->colors)) {
         glGenBuffers(1, &color_vbo);
         CHECK_GL_ERROR();
 
@@ -419,7 +383,7 @@ mesh_t *gl::create_mesh(model_t *model) {
         );
     }
 
-    if (!lists::null_or_empty(model->tex_coords)) {
+    if (!null_or_empty(model->tex_coords)) {
         glGenBuffers(1, &tex_coord_vbo);
         CHECK_GL_ERROR();
 
@@ -437,7 +401,7 @@ mesh_t *gl::create_mesh(model_t *model) {
         );
     }
 
-    if (!lists::null_or_empty(model->normals)) {
+    if (!null_or_empty(model->normals)) {
         glGenBuffers(1, &normal_vbo);
         CHECK_GL_ERROR();
 
@@ -471,7 +435,7 @@ mesh_t *gl::create_mesh(model_t *model) {
     return mesh;
 }
 
-void gl::destroy_mesh(mesh_t *mesh) {
+void destroy_mesh(mesh_t *mesh) {
     if (mesh->indices_handle > 0)
         glDeleteBuffers(1, &mesh->indices_handle);
 
@@ -493,7 +457,7 @@ void gl::destroy_mesh(mesh_t *mesh) {
     CHECK_GL_ERROR();
 }
 
-shader_t *gl::create_shader(
+shader_t *create_shader(
         const char *shader_code,
         SHADER_TYPE type
 ) {
@@ -520,12 +484,12 @@ shader_t *gl::create_shader(
     return shader;
 }
 
-void gl::destroy_shader(shader_t *shader) {
+void destroy_shader(shader_t *shader) {
     glDeleteShader(shader->handle);
     memfree(shader);
 }
 
-shader_program_t *gl::create_shader_program(
+shader_program_t *create_shader_program(
         shader_t vertex_shader,
         shader_t fragment_shader,
         const char *vertex_position_name,
@@ -569,12 +533,12 @@ shader_program_t *gl::create_shader_program(
     return program;
 }
 
-void gl::destroy_shader_program(shader_program_t *shader) {
+void destroy_shader_program(shader_program_t *shader) {
     glDeleteProgram(shader->handle);
     memfree(shader);
 }
 
-void gl::create_and_add_uniform(
+void create_and_add_uniform(
         material_t *material,
         uniform_definition_t uniform_def
 ) {
@@ -594,16 +558,16 @@ void gl::create_and_add_uniform(
     uniform->type = uniform_def.type;
     uniform->current_value = uniform_def.default_value;
 
-    lists::add(material->uniforms, uniform);
+    add(material->uniforms, uniform);
 }
 
-material_t *gl::create_material(
+material_t *create_material(
         shader_program_t *shader,
         COMPARE_FUNCTIONS depth_func,
         list<uniform_definition_t> *uniform_definitions
 ) {
     material_t *material = (material_t *) memalloc(sizeof(material_t));
-    list<uniform_t *> *uniforms = lists::create<uniform_t *>(uniform_definitions->length);
+    list<uniform_t *> *uniforms = create_list<uniform_t *>(uniform_definitions->length);
 
     material->shader = shader;
     material->depth_func = depth_func;
@@ -618,112 +582,112 @@ material_t *gl::create_material(
     return material;
 }
 
-void gl::destroy_material(material_t *material) {
+void destroy_material(material_t *material) {
     for (int i = 0; i < material->uniforms->length; ++i) {
         uniform_t *uni = material->uniforms->items[i];
         memfree(uni);
     }
-    lists::destroy(material->uniforms);
+    destroy_list(material->uniforms);
     memfree(material);
 }
 
-void gl::set_uniform_bool(material_t *material, const char *name, bool value){
+void set_uniform_bool(material_t *material, const char *name, bool value){
     uniform_t *uniform = find_uniform_by_name(name, material);
     ENSURE(uniform != null);
     uniform->current_value.bool_value = value;
 }
 
-void gl::set_uniform_byte(material_t *material, const char *name, byte value){
+void set_uniform_byte(material_t *material, const char *name, byte value){
     uniform_t *uniform = find_uniform_by_name(name, material);
     ENSURE(uniform != null);
     uniform->current_value.byte_value = value;
 }
 
-void gl::set_uniform_ubyte(material_t *material, const char *name, ubyte value){
+void set_uniform_ubyte(material_t *material, const char *name, ubyte value){
     uniform_t *uniform = find_uniform_by_name(name, material);
     ENSURE(uniform != null);
     uniform->current_value.ubyte_value = value;
 }
 
-void gl::set_uniform_short(material_t *material, const char *name, short value){
+void set_uniform_short(material_t *material, const char *name, short value){
     uniform_t *uniform = find_uniform_by_name(name, material);
     ENSURE(uniform != null);
     uniform->current_value.short_value = value;
 }
 
-void gl::set_uniform_ushort(material_t *material, const char *name, ushort value){
+void set_uniform_ushort(material_t *material, const char *name, ushort value){
     uniform_t *uniform = find_uniform_by_name(name, material);
     ENSURE(uniform != null);
     uniform->current_value.ushort_value = value;
 }
 
-void gl::set_uniform_int(material_t *material, const char *name, int value){
+void set_uniform_int(material_t *material, const char *name, int value){
     uniform_t *uniform = find_uniform_by_name(name, material);
     ENSURE(uniform != null);
     uniform->current_value.int_value = value;
 }
 
-void gl::set_uniform_uint(material_t *material, const char *name, uint value){
+void set_uniform_uint(material_t *material, const char *name, uint value){
     uniform_t *uniform = find_uniform_by_name(name, material);
     ENSURE(uniform != null);
     uniform->current_value.uint_value = value;
 }
 
-void gl::set_uniform_long(material_t *material, const char *name, long value){
+void set_uniform_long(material_t *material, const char *name, long value){
     uniform_t *uniform = find_uniform_by_name(name, material);
     ENSURE(uniform != null);
     uniform->current_value.long_value = value;
 }
 
-void gl::set_uniform_float(material_t *material, const char *name, float value){
+void set_uniform_float(material_t *material, const char *name, float value){
     uniform_t *uniform = find_uniform_by_name(name, material);
     ENSURE(uniform != null);
     uniform->current_value.float_value = value;
 }
 
-void gl::set_uniform_double(material_t *material, const char *name, double value){
+void set_uniform_double(material_t *material, const char *name, double value){
     uniform_t *uniform = find_uniform_by_name(name, material);
     ENSURE(uniform != null);
     uniform->current_value.double_value = value;
 }
 
-void gl::set_uniform_vec2(material_t *material, const char *name, glm::vec2 value){
+void set_uniform_vec2(material_t *material, const char *name, glm::vec2 value){
     uniform_t *uniform = find_uniform_by_name(name, material);
     ENSURE(uniform != null);
     uniform->current_value.vector2_value = value;
 }
 
-void gl::set_uniform_vec3(material_t *material, const char *name, glm::vec3 value){
+void set_uniform_vec3(material_t *material, const char *name, glm::vec3 value){
     uniform_t *uniform = find_uniform_by_name(name, material);
     ENSURE(uniform != null);
     uniform->current_value.vector3_value = value;
 }
 
-void gl::set_uniform_vec4(material_t *material, const char *name, glm::vec4 value){
+void set_uniform_vec4(material_t *material, const char *name, glm::vec4 value){
     uniform_t *uniform = find_uniform_by_name(name, material);
     ENSURE(uniform != null);
     uniform->current_value.vector4_value = value;
 }
 
-void gl::set_uniform_matrix(material_t *material, const char *name, glm::mat4 value){
+void set_uniform_matrix(material_t *material, const char *name, glm::mat4 value){
     uniform_t *uniform = find_uniform_by_name(name, material);
     ENSURE(uniform != null);
     uniform->current_value.matrix_value = value;
 }
 
-void gl::set_uniform_texture(material_t *material, const char *name, texture_t *value){
+void set_uniform_texture(material_t *material, const char *name, texture_t *value){
     uniform_t *uniform = find_uniform_by_name(name, material);
     ENSURE(uniform != null);
     uniform->current_value.texture_value.texture = value;
 }
 
-void gl::set_uniform_texture_property(material_t *material, const char *name, texture_material_propery_t value){
+void set_uniform_texture_property(material_t *material, const char *name, texture_material_propery_t value){
     uniform_t *uniform = find_uniform_by_name(name, material);
     ENSURE(uniform != null);
     uniform->current_value.texture_value = value;
 }
 
-uniform_t *gl::find_uniform_by_name(const char *name, material_t *material) {
+uniform_t *find_uniform_by_name(const char *name, material_t *material) {
     int name_hash = hash((char *) name);
     list<uniform_t *> *uniforms = material->uniforms;
     for (int i = 0; i < uniforms->length; ++i) {
@@ -739,7 +703,7 @@ uniform_t *gl::find_uniform_by_name(const char *name, material_t *material) {
     return null;
 }
 
-void gl::buff_uniform(uniform_t *uniform) {
+void buff_uniform(uniform_t *uniform) {
 
     // The shader doesn't have the material uniform defined on the material file
     if (uniform->handle < 0)
@@ -809,13 +773,51 @@ void gl::buff_uniform(uniform_t *uniform) {
     CHECK_GL_ERROR();
 }
 
-void gl::buff_uniforms(list<uniform_t *> *uniforms) {
+void buff_uniforms(list<uniform_t *> *uniforms) {
     for (int i = 0; i < uniforms->length; ++i) {
         buff_uniform(uniforms->items[i]);
     }
 }
 
-void gl::use_material(material_t *material) {
+// DRAWING
+
+static graphics_state_t gl_state;
+
+graphics_state_t get_graphics_state() {
+    return gl_state;
+}
+
+void set_depth_func(COMPARE_FUNCTIONS func) {
+    if (gl_state.current_depth_func != func) {
+        if (func == COMPARE_DISABLED) {
+            glDisable(GL_DEPTH_TEST);
+        } else {
+            if (gl_state.current_depth_func == COMPARE_DISABLED)
+                glEnable(GL_DEPTH_TEST);
+
+            if (func == COMPARE_DEFAULT)
+                glDepthFunc(DEFAULT_COMPARE_FUNC);
+            if (func == COMPARE_LESS)
+                glDepthFunc(GL_LESS);
+            else if (func == COMPARE_LESS_OR_EQUAL)
+                glDepthFunc(GL_LEQUAL);
+            else if (func == COMPARE_EQUAL)
+                glDepthFunc(GL_EQUAL);
+            else if (func == COMPARE_GREATER)
+                glDepthFunc(GL_GREATER);
+            else if (func == COMPARE_GREATER_OR_EQUAL)
+                glDepthFunc(GL_GEQUAL);
+            else if (func == COMPARE_DIFFERENT)
+                glDepthFunc(GL_NOTEQUAL);
+        }
+
+        gl_state.current_depth_func = func;
+    }
+}
+
+void prepare_material_to_draw(material_t *material) {
+    ENSURE(material != null);
+
     if (gl_state.current_shader_program != material->shader->handle) {
         glUseProgram(material->shader->handle);
         gl_state.current_shader_program = material->shader->handle;
@@ -824,7 +826,47 @@ void gl::use_material(material_t *material) {
 
     set_depth_func(material->depth_func);
 
-    gl::buff_uniforms(material->uniforms);
+    buff_uniforms(material->uniforms);
+}
+
+void prepare_to_draw(mesh_renderer_t *renderer) {
+
+    // TODO: maybe flag this as already prepare to prevent preparing unecessaraly?!
+    update_transform_matrix(renderer->entity->transform);
+
+    material_t *material = renderer->material;
+    prepare_material_to_draw(material);
+}
+
+void draw_renderer(mesh_renderer_t *renderer) {
+    prepare_to_draw(renderer);
+
+    mesh_t *mesh = renderer->mesh;
+
+    ENSURE(mesh != null);
+
+    glBindVertexArray(mesh->vao_handle);
+    CHECK_GL_ERROR();
+
+    set_vbo_enable_state(mesh, true);
+
+    if (mesh->indices_handle > 0) {
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->indices_handle);
+        CHECK_GL_ERROR();
+
+        glDrawElements(GL_TRIANGLES, mesh->model->indices->length, GL_UNSIGNED_INT, null);
+        CHECK_GL_ERROR();
+
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, HANDLE_NONE);
+        CHECK_GL_ERROR();
+    } else {
+        glDrawArrays(GL_TRIANGLES, 0, mesh->model->positions->length);
+        CHECK_GL_ERROR();
+    }
+
+    set_vbo_enable_state(mesh, false);
+
+    glBindVertexArray(HANDLE_NONE);
 }
 
 void set_vbo_enable_state(mesh_t *mesh, bool state) {
@@ -859,27 +901,105 @@ void set_vbo_enable_state(mesh_t *mesh, bool state) {
     CHECK_GL_ERROR();
 }
 
-void gl::draw_mesh(mesh_t *mesh) {
-    glBindVertexArray(mesh->vao_handle);
-    CHECK_GL_ERROR();
-
-    set_vbo_enable_state(mesh, true);
-
-    if (mesh->indices_handle > 0) {
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->indices_handle);
-        CHECK_GL_ERROR();
-
-        glDrawElements(GL_TRIANGLES, mesh->model->indices->length, GL_UNSIGNED_INT, null);
-        CHECK_GL_ERROR();
-
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, HANDLE_NONE);
-        CHECK_GL_ERROR();
-    } else {
-        glDrawArrays(GL_TRIANGLES, 0, mesh->model->positions->length);
-        CHECK_GL_ERROR();
+void draw_renderers(list<mesh_renderer_t *> *renderers) {
+    for (int i = 0; i < renderers->length; ++i) {
+        draw_renderer(renderers->items[i]);
     }
+}
 
-    set_vbo_enable_state(mesh, false);
+mesh_renderer_t *create_mesh_renderer(material_t *material, mesh_t *mesh) {
+    mesh_renderer_t *renderer = (mesh_renderer_t *) memalloc(sizeof(mesh_renderer_t));
 
-    glBindVertexArray(HANDLE_NONE);
+    renderer->material = material;
+    renderer->mesh = mesh;
+    renderer->entity = create_entity(BUILT_IN_ENTITIES::MESH_RENDERER, renderer);
+    renderer->should_be_drawn = true;
+
+    return renderer;
+}
+
+void destroy_mesh_renderer(mesh_renderer_t *renderer) {
+    destroy_entity(renderer->entity);
+    memfree(renderer);
+}
+
+camera_t *create_camera() {
+    camera_t *camera = (camera_t *) memalloc(sizeof(camera_t));
+    camera->entity = create_entity(BUILT_IN_ENTITIES::CAMERA, camera);
+    camera->_matrix = glm::mat4();
+    return camera;
+}
+
+void update_perspetive_camera_matrix(camera_t *camera) {
+    perspective_camera_t perspective = camera->perspective;
+    camera->projection = glm::perspective(
+            perspective.field_of_view,
+            perspective.aspect_ratio,
+            perspective.near_plane,
+            perspective.far_plane
+    );
+}
+
+camera_t *create_perspective_camera(
+        float field_of_view,
+        float ratio,
+        float near_plane,
+        float far_plane
+) {
+    camera_t *camera = create_camera();
+    camera->type = CAMERA_TYPE::PERSPECTIVE;
+    camera->perspective.field_of_view = field_of_view;
+    camera->perspective.aspect_ratio = ratio;
+    camera->perspective.near_plane = near_plane;
+    camera->perspective.far_plane = far_plane;
+    update_perspetive_camera_matrix(camera);
+    return camera;
+}
+
+void update_ortho_camera_matrix(camera_t *camera) {
+    orthogonal_camera_t ortho = camera->ortho;
+    camera->projection = glm::ortho(
+            ortho.left,
+            ortho.right,
+            ortho.top,
+            ortho.bottom,
+            ortho.near_plane,
+            ortho.far_plane
+    );
+}
+
+camera_t *create_ortho_camera(
+        float left,
+        float right,
+        float bottom,
+        float top,
+        float near_plane,
+        float far_plane
+) {
+    camera_t *camera = create_camera();
+    camera->type = CAMERA_TYPE::ORTHO;
+    camera->ortho.left = left;
+    camera->ortho.right = right;
+    camera->ortho.bottom = bottom;
+    camera->ortho.top = top;
+    camera->ortho.near_plane = near_plane;
+    camera->ortho.far_plane = far_plane;
+    update_ortho_camera_matrix(camera);
+    return camera;
+}
+
+void destroy_camera(camera_t *camera) {
+    destroy_entity(camera->entity);
+    memfree(camera);
+}
+
+void update_camera_matrix(camera_t *camera) {
+    if (camera->type == CAMERA_TYPE::PERSPECTIVE)
+        update_perspetive_camera_matrix(camera);
+    else
+        update_ortho_camera_matrix(camera);
+
+    transform_t *trans = camera->entity->transform;
+    camera->view = glm::lookAt(trans->position, get_forward(trans), get_up(trans));
+    camera->_matrix = camera->projection * camera->view;
 }

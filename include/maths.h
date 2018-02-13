@@ -15,11 +15,27 @@ typedef struct transform {
     glm::mat4 _matrix;
 } transform_t;
 
-namespace math {
-    transform_t *create_transform();
-    void free_transform(transform_t *transform);
+glm::vec3 forward();
 
-    void prepare_transform_for_draw(transform_t *transform);
-}
+glm::vec3 backwards();
+
+glm::vec3 up();
+
+glm::vec3 down();
+
+glm::vec3 right();
+
+glm::vec3 left();
+
+transform_t *create_transform();
+
+void destroy_transform(transform_t *transform);
+
+void update_transform_matrix(transform_t *transform);
+
+glm::vec3 get_forward(transform_t *transform);
+void set_forward(transform_t *transform, glm::vec3 forward);
+
+glm::vec3 get_up(transform_t *transform);
 
 #endif //CYNICAL_ENGINE_CPP_MATHS_H
