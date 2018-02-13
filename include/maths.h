@@ -51,4 +51,6 @@ glm::vec3 get_left(transform_t *transform);
 void set_right(transform_t *transform, glm::vec3 right);
 void set_left(transform_t *transform, glm::vec3 left);
 
+void look_at(transform_t *transform, glm::vec3 dir);
+
 #endif //CYNICAL_ENGINE_CPP_MATHS_H

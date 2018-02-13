@@ -172,10 +172,30 @@ int main(void) {
                 camera->entity->transform->position.x -= dt;
             } else if (glfwGetKey(window, GLFW_KEY_D)) {
                 camera->entity->transform->position.x += dt;
-            } else if (glfwGetKey(window, GLFW_KEY_8)) {
+            }
+
+            if (glfwGetKey(window, GLFW_KEY_8)) {
                 camera->entity->transform->rotation *= glm::angleAxis(dt, world_right());
             } else if (glfwGetKey(window, GLFW_KEY_2)) {
                 camera->entity->transform->rotation *= glm::angleAxis(dt, world_left());
+            }
+
+            if (glfwGetKey(window, GLFW_KEY_4)) {
+                camera->entity->transform->rotation *= glm::angleAxis(dt, world_up());
+            } else if (glfwGetKey(window, GLFW_KEY_6)) {
+                camera->entity->transform->rotation *= glm::angleAxis(dt, world_down());
+            }
+
+            if (glfwGetKey(window, GLFW_KEY_RIGHT)) {
+                look_at(transform, world_right());
+            } else if (glfwGetKey(window, GLFW_KEY_LEFT)) {
+                look_at(transform, world_left());
+            } else if (glfwGetKey(window, GLFW_KEY_UP)) {
+                look_at(transform, world_up());
+            } else if (glfwGetKey(window, GLFW_KEY_DOWN)) {
+                look_at(transform, world_down());
+            } else if (glfwGetKey(window, GLFW_KEY_R)) {
+                look_at(transform, world_backwards());
             }
 
             update_transform_matrix(transform);

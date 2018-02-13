@@ -64,7 +64,8 @@ glm::vec3 get_backwards(transform_t *transform) {
 }
 
 void set_forward(transform_t *transform, glm::vec3 forward) {
-    transform->rotation = glm::quat_cast(glm::lookAt(transform->position, forward, get_up(transform)));
+    glm::vec3 pos = transform->position + (forward * 10000000.f);
+    transform->rotation = glm::quat_cast(glm::lookAt(transform->position, pos, world_up()));
 }
 
 void set_backwards(transform_t *transform, glm::vec3 backwards) {
@@ -80,7 +81,8 @@ glm::vec3 get_down(transform_t *transform) {
 }
 
 void set_up(transform_t *transform, glm::vec3 up) {
-    transform->rotation = glm::quat_cast(glm::lookAt(transform->position, get_forward(transform), up));
+    glm::vec3 forward = glm::cross(up, world_right());
+    set_forward(transform, forward);
 }
 
 void set_down(transform_t *transform, glm::vec3 down) {
@@ -96,8 +98,14 @@ glm::vec3 get_left(transform_t *transform) {
 }
 
 void set_right(transform_t *transform, glm::vec3 right) {
-    transform->rotation = glm::quat_cast(glm::lookAt(transform->position, glm::cross(right, world_up()), world_up()));
+    glm::vec3 forward = glm::cross(right, world_up());
+    set_forward(transform, forward);
 }
 void set_left(transform_t *transform, glm::vec3 left) {
     set_right(transform, -left);
+}
+
+void look_at(transform_t *transform, glm::vec3 dir) {
+    dir = glm::normalize(dir);
+    set_forward(transform, dir);
 }
