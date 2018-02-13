@@ -98,9 +98,9 @@ int index_of(list <T> *list, T item) {
 
 LIST_TEMPLATE
 void remove(list <T> *list, T item) {
-    int index_of = index_of(list, item);
-    if (index_of >= 0)
-        remove_at(list, index_of);
+    int index = index_of(list, item);
+    if (index >= 0)
+        remove_at(list, index);
 }
 
 LIST_TEMPLATE

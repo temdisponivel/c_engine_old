@@ -10,6 +10,8 @@
 
 #include "stb_image.h"
 
+
+
 image_t *create_image(const char *image_file_path) {
     image_t *image;
 
@@ -436,25 +438,35 @@ mesh_t *create_mesh(model_t *model) {
 }
 
 void destroy_mesh(mesh_t *mesh) {
-    if (mesh->indices_handle > 0)
+    if (mesh->indices_handle > 0) {
         glDeleteBuffers(1, &mesh->indices_handle);
+        CHECK_GL_ERROR();
+    }
 
-    if (mesh->vertex_position_handle > 0)
+    if (mesh->vertex_position_handle > 0) {
         glDeleteBuffers(1, &mesh->vertex_position_handle);
+        CHECK_GL_ERROR();
+    }
 
-    if (mesh->vertex_color_handle > 0)
+    if (mesh->vertex_color_handle > 0){
         glDeleteBuffers(1, &mesh->vertex_color_handle);
+        CHECK_GL_ERROR();
+    }
 
-    if (mesh->vertex_tex_coord_handle > 0)
+    if (mesh->vertex_tex_coord_handle > 0){
         glDeleteBuffers(1, &mesh->vertex_tex_coord_handle);
+        CHECK_GL_ERROR();
+    }
 
-    if (mesh->vertex_normal_handle > 0)
+    if (mesh->vertex_normal_handle > 0) {
         glDeleteBuffers(1, &mesh->vertex_normal_handle);
+        CHECK_GL_ERROR();
+    }
 
-    glDeleteVertexArrays(1, &mesh->indices_handle);
-    memfree(mesh);
-
+    glDeleteVertexArrays(1, &mesh->vao_handle);
     CHECK_GL_ERROR();
+
+    memfree(mesh);
 }
 
 shader_t *create_shader(
@@ -486,6 +498,8 @@ shader_t *create_shader(
 
 void destroy_shader(shader_t *shader) {
     glDeleteShader(shader->handle);
+    CHECK_GL_ERROR();
+
     memfree(shader);
 }
 
@@ -535,6 +549,8 @@ shader_program_t *create_shader_program(
 
 void destroy_shader_program(shader_program_t *shader) {
     glDeleteProgram(shader->handle);
+    CHECK_GL_ERROR();
+
     memfree(shader);
 }
 
@@ -595,7 +611,7 @@ material_t *create_material(
     // Try to create default uniforms for the uniforms that the engine supplies regardless of declaration
 
     uniform_definition_t matrices_defition = {};
-    matrices_defition.type = UNIFORM_TYPE::UNIFORM_MAT4;
+    matrices_defition.type = UNIFORM_TYPE::UNIFORM_MATRIX;
     matrices_defition.default_value.matrix_value = glm::mat4();
 
     matrices_defition.name = (char *) "MVP";
@@ -627,92 +643,140 @@ void destroy_material(material_t *material) {
 
 void set_uniform_bool(material_t *material, const char *name, bool value) {
     uniform_t *uniform = find_uniform_by_name(name, material);
-    if (uniform != null)
+    if (uniform != null) {
+        if (uniform->type != UNIFORM_TYPE::UNIFORM_BOOLEAN)
+            WARNINGF("SETTING BOOL TO A UNIFORM ('%s') THAT IS NOT A BOOL!", name);
         uniform->current_value.bool_value = value;
+    }
 }
 
 void set_uniform_byte(material_t *material, const char *name, byte value) {
     uniform_t *uniform = find_uniform_by_name(name, material);
-    if (uniform != null)
+    if (uniform != null) {
+        if (uniform->type != UNIFORM_TYPE::UNIFORM_BYTE)
+            WARNINGF("SETTING BYTE TO A UNIFORM ('%s') THAT IS NOT A BYTE!", name);
         uniform->current_value.byte_value = value;
+    }
 }
 
 void set_uniform_ubyte(material_t *material, const char *name, ubyte value) {
     uniform_t *uniform = find_uniform_by_name(name, material);
-    if (uniform != null)
+    if (uniform != null) {
+        if (uniform->type != UNIFORM_TYPE::UNIFORM_UBYTE)
+            WARNINGF("SETTING UBYTE TO A UNIFORM ('%s') THAT IS NOT A UBYTE!", name);
         uniform->current_value.ubyte_value = value;
+    }
 }
 
 void set_uniform_short(material_t *material, const char *name, short value) {
     uniform_t *uniform = find_uniform_by_name(name, material);
-    if (uniform != null)
+    if (uniform != null) {
+        if (uniform->type != UNIFORM_TYPE::UNIFORM_SHORT)
+            WARNINGF("SETTING SHORT TO A UNIFORM ('%s') THAT IS NOT A SHORT!", name);
         uniform->current_value.short_value = value;
+    }
 }
 
 void set_uniform_ushort(material_t *material, const char *name, ushort value) {
     uniform_t *uniform = find_uniform_by_name(name, material);
-    if (uniform != null)
+    if (uniform != null) {
+        if (uniform->type != UNIFORM_TYPE::UNIFORM_USHORT)
+            WARNINGF("SETTING USHORT TO A UNIFORM ('%s') THAT IS NOT A USHORT!", name);
         uniform->current_value.ushort_value = value;
+    }
 }
 
 void set_uniform_int(material_t *material, const char *name, int value) {
     uniform_t *uniform = find_uniform_by_name(name, material);
-    if (uniform != null)
+    if (uniform != null) {
+        if (uniform->type != UNIFORM_TYPE::UNIFORM_INT)
+            WARNINGF("SETTING INT TO A UNIFORM ('%s') THAT IS NOT A INT!", name);
         uniform->current_value.int_value = value;
+    }
 }
 
 void set_uniform_uint(material_t *material, const char *name, uint value) {
     uniform_t *uniform = find_uniform_by_name(name, material);
-    if (uniform != null)
+    if (uniform != null) {
+        if (uniform->type != UNIFORM_TYPE::UNIFORM_UINT)
+            WARNINGF("SETTING UINT TO A UNIFORM ('%s') THAT IS NOT A UINT!", name);
         uniform->current_value.uint_value = value;
+    }
 }
 
 void set_uniform_long(material_t *material, const char *name, long value) {
     uniform_t *uniform = find_uniform_by_name(name, material);
-    if (uniform != null)
+    if (uniform != null) {
+        if (uniform->type != UNIFORM_TYPE::UNIFORM_LONG)
+            WARNINGF("SETTING LONG TO A UNIFORM ('%s') THAT IS NOT A LONG!", name);
         uniform->current_value.long_value = value;
+    }
 }
 
 void set_uniform_float(material_t *material, const char *name, float value) {
     uniform_t *uniform = find_uniform_by_name(name, material);
-    if (uniform != null)
+    if (uniform != null) {
+        if (uniform->type != UNIFORM_TYPE::UNIFORM_FLOAT)
+            WARNINGF("SETTING FLOAT TO A UNIFORM ('%s') THAT IS NOT A FLOAT!", name);
         uniform->current_value.float_value = value;
+    }
 }
 
 void set_uniform_double(material_t *material, const char *name, double value) {
     uniform_t *uniform = find_uniform_by_name(name, material);
-    if (uniform != null)
+    if (uniform != null) {
+        if (uniform->type != UNIFORM_TYPE::UNIFORM_DOUBLE)
+            WARNINGF("SETTING DOUBLE TO A UNIFORM ('%s') THAT IS NOT A DOUBLE!", name);
         uniform->current_value.double_value = value;
+    }
 }
 
 void set_uniform_vec2(material_t *material, const char *name, glm::vec2 value) {
     uniform_t *uniform = find_uniform_by_name(name, material);
-    if (uniform != null)
+    if (uniform != null) {
+        if (uniform->type != UNIFORM_TYPE::UNIFORM_VEC2)
+            WARNINGF("SETTING VEC2 TO A UNIFORM ('%s') THAT IS NOT A VEC2!", name);
         uniform->current_value.vector2_value = value;
+    }
 }
 
 void set_uniform_vec3(material_t *material, const char *name, glm::vec3 value) {
     uniform_t *uniform = find_uniform_by_name(name, material);
-    if (uniform != null)
+    if (uniform != null) {
+        if (uniform->type != UNIFORM_TYPE::UNIFORM_VEC3)
+            WARNINGF("SETTING VEC3 TO A UNIFORM ('%s') THAT IS NOT A VEC3!", name);
         uniform->current_value.vector3_value = value;
+    }
 }
 
 void set_uniform_vec4(material_t *material, const char *name, glm::vec4 value) {
     uniform_t *uniform = find_uniform_by_name(name, material);
-    if (uniform != null)
+    if (uniform != null) {
+        if (uniform->type != UNIFORM_TYPE::UNIFORM_VEC4)
+            WARNINGF("SETTING VEC4 TO A UNIFORM ('%s') THAT IS NOT A VEC4!", name);
+
         uniform->current_value.vector4_value = value;
+    }
 }
 
 void set_uniform_matrix(material_t *material, const char *name, glm::mat4 value) {
     uniform_t *uniform = find_uniform_by_name(name, material);
-    if (uniform != null)
+    if (uniform != null) {
+        if (uniform->type != UNIFORM_TYPE::UNIFORM_MATRIX)
+            WARNINGF("SETTING MATRIX TO A UNIFORM ('%s') THAT IS NOT A MATRIX!", name);
+
         uniform->current_value.matrix_value = value;
+    }
 }
 
 void set_uniform_texture(material_t *material, const char *name, texture_t *value) {
     uniform_t *uniform = find_uniform_by_name(name, material);
-    if (uniform != null)
+    if (uniform != null) {
+        if (uniform->type != UNIFORM_TYPE::UNIFORM_TEXTURE2D)
+            WARNINGF("SETTING TEXTURE TO A UNIFORM ('%s') THAT IS NOT A TEXTURE!", name);
+
         uniform->current_value.texture_value.texture = value;
+    }
 }
 
 void set_uniform_texture_property(material_t *material, const char *name, texture_material_propery_t value) {
@@ -784,7 +848,7 @@ void buff_uniform(uniform_t *uniform) {
         case UNIFORM_VEC4:
             glUniform4fv(uniform->handle, 1, (const GLfloat *) glm::value_ptr(uniform->current_value.vector4_value));
             break;
-        case UNIFORM_MAT4:
+        case UNIFORM_MATRIX:
             glUniformMatrix4fv(
                     uniform->handle,
                     1,
@@ -815,18 +879,35 @@ void buff_uniforms(list<uniform_t *> *uniforms) {
 
 // DRAWING
 
-static graphics_state_t gl_state;
+static graphics_state_t *gl_state;
+
+void prepare_graphics() {
+    gl_state = (graphics_state_t *) memalloc(sizeof(graphics_state_t));
+    gl_state->rendereres = create_list<mesh_renderer_t *>(10);
+}
+
+void release_graphics() {
+
+    //TODO: maybe store all shaders, materials, etc and delete all of them here?!
+    //TODO: maybe store all shaders, materials, etc and delete all of them here?!
+    //TODO: maybe store all shaders, materials, etc and delete all of them here?!
+    //TODO: maybe store all shaders, materials, etc and delete all of them here?!
+    //TODO: maybe store all shaders, materials, etc and delete all of them here?!
+
+    destroy_list(gl_state->rendereres);
+    memfree(gl_state);
+}
 
 graphics_state_t get_graphics_state() {
-    return gl_state;
+    return *gl_state;
 }
 
 void set_depth_func(COMPARE_FUNCTIONS func) {
-    if (gl_state.current_depth_func != func) {
+    if (gl_state->current_depth_func != func) {
         if (func == COMPARE_DISABLED) {
             glDisable(GL_DEPTH_TEST);
         } else {
-            if (gl_state.current_depth_func == COMPARE_DISABLED)
+            if (gl_state->current_depth_func == COMPARE_DISABLED)
                 glEnable(GL_DEPTH_TEST);
 
             if (func == COMPARE_DEFAULT)
@@ -845,25 +926,25 @@ void set_depth_func(COMPARE_FUNCTIONS func) {
                 glDepthFunc(GL_NOTEQUAL);
         }
 
-        gl_state.current_depth_func = func;
+        gl_state->current_depth_func = func;
     }
 }
 
 void prepare_material_to_draw(material_t *material) {
     ENSURE(material != null);
 
-    if (gl_state.current_shader_program != material->shader->handle) {
+    if (gl_state->current_shader_program != material->shader->handle) {
         glUseProgram(material->shader->handle);
-        gl_state.current_shader_program = material->shader->handle;
+        gl_state->current_shader_program = material->shader->handle;
         CHECK_GL_ERROR();
     }
 
     set_depth_func(material->depth_func);
 
     // set camera matrices
-    set_uniform_matrix(material, "PROJECTION", gl_state.current_camera->projection);
-    set_uniform_matrix(material, "VIEW", gl_state.current_camera->view);
-    set_uniform_matrix(material, "VP", gl_state.current_camera->_matrix);
+    set_uniform_matrix(material, "PROJECTION", gl_state->current_camera->projection);
+    set_uniform_matrix(material, "VIEW", gl_state->current_camera->view);
+    set_uniform_matrix(material, "VP", gl_state->current_camera->_matrix);
 
     buff_uniforms(material->uniforms);
 }
@@ -877,7 +958,7 @@ void prepare_to_draw(mesh_renderer_t *renderer) {
     // set mesh matrices
     set_uniform_matrix(material, "MODEL", renderer->entity->transform->_matrix);
 
-    glm::mat4 mvp = gl_state.current_camera->_matrix * renderer->entity->transform->_matrix;
+    glm::mat4 mvp = gl_state->current_camera->_matrix * renderer->entity->transform->_matrix;
     set_uniform_matrix(material, "MVP", mvp);
 
     prepare_material_to_draw(material);
@@ -946,10 +1027,14 @@ void set_vbo_enable_state(mesh_t *mesh, bool state) {
     CHECK_GL_ERROR();
 }
 
-void draw_renderers(list<mesh_renderer_t *> *renderers) {
-    ENSURE(gl_state.current_camera != null);
+void draw_all_renderers() {
+    draw_renderers(gl_state->rendereres);
+}
 
-    update_camera_matrix(gl_state.current_camera);
+void draw_renderers(list<mesh_renderer_t *> *renderers) {
+    ENSURE(gl_state->current_camera != null);
+
+    update_camera_matrix(gl_state->current_camera);
 
     for (int i = 0; i < renderers->length; ++i) {
         draw_renderer(renderers->items[i]);
@@ -964,10 +1049,13 @@ mesh_renderer_t *create_mesh_renderer(material_t *material, mesh_t *mesh) {
     renderer->entity = create_entity(BUILT_IN_ENTITIES::MESH_RENDERER, renderer);
     renderer->should_be_drawn = true;
 
+    add(gl_state->rendereres, renderer);
+
     return renderer;
 }
 
 void destroy_mesh_renderer(mesh_renderer_t *renderer) {
+    remove(gl_state->rendereres, renderer);
     destroy_entity(renderer->entity);
     memfree(renderer);
 }
@@ -1059,7 +1147,7 @@ void update_camera_matrix(camera_t *camera) {
 }
 
 void use_camera(camera_t *camera) {
-    if (gl_state.current_camera != camera) {
-        gl_state.current_camera = camera;
+    if (gl_state->current_camera != camera) {
+        gl_state->current_camera = camera;
     }
 }

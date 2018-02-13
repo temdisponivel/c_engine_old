@@ -31,11 +31,21 @@
 #define LOG_WARNING 1
 #define LOG_ERROR 2
 
+#if DEV
+
 void MESSAGEF(const char *format, ...);
 
 void WARNINGF(const char *format, ...);
 
 void ERRORF(const char *format, ...);
+
+#else
+
+#define MESSAGEF(format,...)
+#define WARNINGF(format,...)
+#define ERRORF(format,...)
+
+#endif
 
 #define FORMAT_VARARGS(format) {  \
     va_list args; \
@@ -166,7 +176,6 @@ void ERRORF(const char *format, ...);
 
 #else
 
-void str_format(char *buffer, uint buffer_size, const char *format, ...);
 #define MESSAGE(MSG)
 #define WARNING(WARN_MESSAGE)
 #define ERROR(ERR_MESSAGE)

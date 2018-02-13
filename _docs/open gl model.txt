@@ -39,6 +39,6 @@ disable VBOs
 unbind VAO
 
 OpenGL always wants vertices to be supplied counter cock wise.
-Always bind the vertex indice buffer when drawing (on update)
+Always bind the vertex indice buffer when drawing (on update_callback)
 
 glEnableVertexAttribArray receives the INDEX of the VBO, not the handle!!!

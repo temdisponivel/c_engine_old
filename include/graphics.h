@@ -176,7 +176,7 @@ enum UNIFORM_TYPE {
     UNIFORM_VEC3,
     UNIFORM_VEC4,
 
-    UNIFORM_MAT4,
+    UNIFORM_MATRIX,
 
     UNIFORM_TEXTURE2D,
 };
@@ -281,9 +281,14 @@ typedef struct graphics_state {
     COMPARE_FUNCTIONS current_depth_func;
     uint current_shader_program;
     camera_t *current_camera;
+    list<mesh_renderer_t *> *rendereres;
 } graphics_state_t;
 
 #define DEFAULT_COMPARE_FUNC GL_LESS
+
+void prepare_graphics();
+
+void release_graphics();
 
 graphics_state_t get_graphics_state();
 
@@ -386,6 +391,8 @@ void prepare_to_draw(mesh_renderer_t *renderer);
 void prepare_material_to_draw(material_t *material);
 
 void draw_renderer(mesh_renderer_t *renderer);
+
+void draw_all_renderers();
 
 void draw_renderers(list<mesh_renderer_t *> *renderers);
 

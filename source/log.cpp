@@ -4,6 +4,8 @@
 
 #include "log.h"
 
+#if DEV
+
 void MESSAGEF(const char *format, ...) {
     FORMAT_VARARGS(format);
     MESSAGE(STRING_BUFF_HELPER);
@@ -18,3 +20,5 @@ void ERRORF(const char *format, ...) {
     FORMAT_VARARGS(format);
     ERROR(STRING_BUFF_HELPER);
 }
+
+#endif
