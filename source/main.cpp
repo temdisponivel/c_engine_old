@@ -119,11 +119,29 @@ int main(void) {
         add(renderers, renderer);
     }
 
+    camera_t *perspective = create_perspective_camera(45.f, 0, .1f, 100.f);
+    camera_t *ortho = create_ortho_camera(-1, 1, -1, 1, -100, 100);
+
+    camera_t *camera = ortho;
+
+    float dt = 0;
+    float start_time = 0;
+    float end_time = 0;
     while (!glfwWindowShouldClose(window)) {
+
+        if (glfwGetKey(window, GLFW_KEY_TAB)) {
+            if (camera == perspective)
+                camera = ortho;
+            else
+                camera = perspective;
+        }
+
+        dt = end_time - start_time;
+
+        start_time = glfwGetTime();
 
         float ratio;
         int width, height;
-        glm::mat4 p, v, mvp;
 
         glfwGetFramebufferSize(window, &width, &height);
         ratio = width / (float) height;
@@ -131,8 +149,8 @@ int main(void) {
         glClear(GL_DEPTH_BUFFER_BIT);
         glClear(GL_COLOR_BUFFER_BIT);
 
-        p = glm::perspective(45.f, ratio, 0.1f, 100.f);
-        v = glm::lookAt(glm::vec3(), glm::vec3(0, 0, -1), glm::vec3(0, 1, 0));
+        if (camera == perspective)
+            camera->perspective.aspect_ratio = ratio;
 
         for (int i = 0; i < renderers->length; ++i) {
             mesh_renderer_t *renderer = renderers->items[i];
@@ -141,18 +159,34 @@ int main(void) {
 
             transform->position = glm::vec3(0, 0, -1);
 
-            transform->rotation = glm::quat();
-            transform->rotation *= glm::angleAxis((float) (glfwGetTime() + i), glm::vec3(0, 0, 1));
-            transform->rotation *= glm::angleAxis((float) (glfwGetTime() + i), glm::vec3(1, 0, 0));
-            transform->rotation *= glm::angleAxis((float) (glfwGetTime() + i), glm::vec3(0, 1, 0));
+            //transform->rotation = glm::quat();
+            //transform->rotation *= glm::angleAxis((float) (glfwGetTime() + i), glm::vec3(0, 0, 1));
+            //transform->rotation *= glm::angleAxis((float) (glfwGetTime() + i), glm::vec3(1, 0, 0));
+            //transform->rotation *= glm::angleAxis((float) (glfwGetTime() + i), glm::vec3(0, 1, 0));
 
-            mvp = p * v * transform->_matrix;
+            if (glfwGetKey(window, GLFW_KEY_W)) {
+                camera->entity->transform->position.z -= dt;
+            } else if (glfwGetKey(window, GLFW_KEY_S)) {
+                camera->entity->transform->position.z += dt;
+            } else if (glfwGetKey(window, GLFW_KEY_A)) {
+                camera->entity->transform->position.x -= dt;
+            } else if (glfwGetKey(window, GLFW_KEY_D)) {
+                camera->entity->transform->position.x += dt;
+            } else if (glfwGetKey(window, GLFW_KEY_8)) {
+                camera->entity->transform->rotation *= glm::angleAxis(dt, world_right());
+            } else if (glfwGetKey(window, GLFW_KEY_2)) {
+                camera->entity->transform->rotation *= glm::angleAxis(dt, world_left());
+            }
+
+            update_transform_matrix(transform);
+            update_camera_matrix(camera);
+            glm::mat4 mvp = camera->_matrix * transform->_matrix;
 
             set_uniform_matrix(material, "MVP", mvp);
 
             if (glfwGetKey(window, GLFW_KEY_L)) {
                 set_uniform_texture(material, "my_texture", texture_large);
-            } else if (glfwGetKey(window, GLFW_KEY_S)) {
+            } else if (glfwGetKey(window, GLFW_KEY_M)) {
                 set_uniform_texture(material, "my_texture", texture);
             }
         }
@@ -161,6 +195,8 @@ int main(void) {
 
         glfwSwapBuffers(window);
         glfwPollEvents();
+
+        end_time = glfwGetTime();
     }
 
     for (int k = 0; k < renderers->length; ++k) {

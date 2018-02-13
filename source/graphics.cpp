@@ -1000,6 +1000,11 @@ void update_camera_matrix(camera_t *camera) {
         update_ortho_camera_matrix(camera);
 
     transform_t *trans = camera->entity->transform;
-    camera->view = glm::lookAt(trans->position, get_forward(trans), get_up(trans));
+    glm::vec3 forward_dir = get_forward(trans);
+
+    // makes the forward vector into a position in front of the camera
+    glm::vec3 center = trans->position + (forward_dir * 1000000.f);
+
+    camera->view = glm::lookAt(trans->position, center, world_up());
     camera->_matrix = camera->projection * camera->view;
 }
