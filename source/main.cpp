@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <collections.h>
 #include <graphics.h>
+#include <maths.h>
 #include "glm/gtc/matrix_transform.hpp"
 #include "glm/gtc/quaternion.hpp"
 
@@ -109,11 +110,13 @@ int main(void) {
     model_t *model = gl::create_model("data/models/plane.cm");
     mesh_t *mesh = gl::create_mesh(model);
 
+    transform_t *transform = math::create_transform();
+
     while (!glfwWindowShouldClose(window)) {
 
         float ratio;
         int width, height;
-        glm::mat4 m, r, t, s, p, v, mvp;
+        glm::mat4 p, v, mvp;
 
         glfwGetFramebufferSize(window, &width, &height);
         ratio = width / (float) height;
@@ -125,15 +128,16 @@ int main(void) {
         v = glm::lookAt(glm::vec3(), glm::vec3(0, 0, -1), glm::vec3(0, 1, 0));
 
         for (int i = 0; i < 3; ++i) {
-            m = glm::mat4();
+            transform->position = glm::vec3(0, 0, -1 - (i * .2f));
 
-            m = glm::translate(m, glm::vec3(0, 0, -1 - (i * .2f)));
+            transform->rotation = glm::quat();
+            transform->rotation *= glm::angleAxis((float) (glfwGetTime() + i), glm::vec3(0, 0, 1));
+            transform->rotation *= glm::angleAxis((float) (glfwGetTime() + i), glm::vec3(1, 0, 0));
+            transform->rotation *= glm::angleAxis((float) (glfwGetTime() + i), glm::vec3(0, 1, 0));
 
-            m = glm::rotate(m, (float) (glfwGetTime() + i), glm::vec3(0, 0, 1));
-            m = glm::rotate(m, (float) (glfwGetTime() + i), glm::vec3(1, 0, 0));
-            m = glm::rotate(m, (float) (glfwGetTime() + i), glm::vec3(0, 1, 0));
+            math::prepare_transform_for_draw(transform);
 
-            mvp = p * v * m;
+            mvp = p * v * transform->_matrix;
 
             gl::set_uniform_matrix(material, "MVP", mvp);
 
