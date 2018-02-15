@@ -1,3 +1,15 @@
+create a window struct to replace the GLFWwindow struct
+
+implement joystick input
+
+create a time handler that will have delta time, time scale, etc
+
+cursor manipulation (set pos, image, etc)
+
+make sure the input system is good enough, maybe query the key states ourselfs instead of getting the callback
+
+test the layout of the input (it seems to NOT be ABTN2)
+
 fix all the "todo:" in code
 make cube appear in scene and rotate properly (being loaded from the obj file) ** (need to create the index buffer)
 
@@ -20,3 +32,7 @@ add options to change DEPTH TEST and DEPTH_FUNC (and possible other similar feat
 refactor the archtecture of the core stuff
 
 also refactor the stuff on graphics (like the list of all mesh renderers that will be draw)
+
+add FBO (frame buffer objects) in order to have multiple cameras drawing to multiple texture, post-processing, etc
+
+text input

@@ -11,7 +11,6 @@
 #include "stb_image.h"
 
 
-
 image_t *create_image(const char *image_file_path) {
     image_t *image;
 
@@ -448,12 +447,12 @@ void destroy_mesh(mesh_t *mesh) {
         CHECK_GL_ERROR();
     }
 
-    if (mesh->vertex_color_handle > 0){
+    if (mesh->vertex_color_handle > 0) {
         glDeleteBuffers(1, &mesh->vertex_color_handle);
         CHECK_GL_ERROR();
     }
 
-    if (mesh->vertex_tex_coord_handle > 0){
+    if (mesh->vertex_tex_coord_handle > 0) {
         glDeleteBuffers(1, &mesh->vertex_tex_coord_handle);
         CHECK_GL_ERROR();
     }
@@ -554,14 +553,20 @@ void destroy_shader_program(shader_program_t *shader) {
     memfree(shader);
 }
 
+int get_uniform_location(uint shader_program, const char *uniform_name) {
+    ENSURE(uniform_name != null);
+
+    int handle = glGetUniformLocation(shader_program, uniform_name);
+    CHECK_GL_ERROR();
+
+    return handle;
+}
+
 void create_and_add_uniform(
         material_t *material,
         uniform_definition_t uniform_def
 ) {
-    ENSURE(uniform_def.name != null);
-
-    int handle = glGetUniformLocation(material->shader->handle, uniform_def.name);
-    CHECK_GL_ERROR();
+    int handle = get_uniform_location(material->shader->handle, uniform_def.name);
 
     if (handle < 0) {
         WARNINGF("UNIFORM '%s' NOT FOUND! IT IS EITHER UNDECLARED OR UNUSED!" FILE_LINE, uniform_def.name);
@@ -575,6 +580,11 @@ void create_and_add_uniform(
             uniform->name_hash = hash(uniform_def.name);
             uniform->type = uniform_def.type;
             uniform->current_value = uniform_def.default_value;
+
+            char *name = (char *) memalloc(strlen(uniform_def.name) * sizeof(char));
+            memcopy(name, uniform_def.name, strlen(uniform_def.name) * sizeof(char));
+
+            uniform->name = name;
 
             add(material->uniforms, uniform);
         } else {
@@ -592,14 +602,14 @@ void create_and_add_uniform(
 
 material_t *create_material(
         shader_program_t *shader,
-        COMPARE_FUNCTIONS depth_func,
         list<uniform_definition_t> *uniform_definitions
 ) {
     material_t *material = (material_t *) memalloc(sizeof(material_t));
     list<uniform_t *> *uniforms = create_list<uniform_t *>(uniform_definitions->length);
 
     material->shader = shader;
-    material->depth_func = depth_func;
+    material->depth_func = COMPARE_FUNCTIONS::COMPARE_DEFAULT;
+    material->cull_func = CULL_FUNCTIONS::CULL_DEFAULT;
     material->shader = shader;
     material->uniforms = uniforms;
 
@@ -635,10 +645,19 @@ material_t *create_material(
 void destroy_material(material_t *material) {
     for (int i = 0; i < material->uniforms->length; ++i) {
         uniform_t *uni = material->uniforms->items[i];
+        memfree(uni->name);
         memfree(uni);
     }
     destroy_list(material->uniforms);
     memfree(material);
+}
+
+void change_shader(material_t *material, shader_program_t *shader) {
+    material->shader = shader;
+    for (int i = 0; i < material->uniforms->length; ++i) {
+        uniform_t *uniform = material->uniforms->items[i];
+        uniform->handle = get_uniform_location(shader->handle, uniform->name);
+    }
 }
 
 void set_uniform_bool(material_t *material, const char *name, bool value) {
@@ -883,7 +902,10 @@ static graphics_state_t *gl_state;
 
 void prepare_graphics() {
     gl_state = (graphics_state_t *) memalloc(sizeof(graphics_state_t));
+
     gl_state->rendereres = create_list<mesh_renderer_t *>(10);
+    gl_state->current_cull_func = CULL_DISABLED;
+    gl_state->current_depth_func = COMPARE_DISABLED;
 }
 
 void release_graphics() {
@@ -910,23 +932,25 @@ void set_depth_func(COMPARE_FUNCTIONS func) {
             if (gl_state->current_depth_func == COMPARE_DISABLED)
                 glEnable(GL_DEPTH_TEST);
 
-            if (func == COMPARE_DEFAULT)
-                glDepthFunc(DEFAULT_COMPARE_FUNC);
-            if (func == COMPARE_LESS)
-                glDepthFunc(GL_LESS);
-            else if (func == COMPARE_LESS_OR_EQUAL)
-                glDepthFunc(GL_LEQUAL);
-            else if (func == COMPARE_EQUAL)
-                glDepthFunc(GL_EQUAL);
-            else if (func == COMPARE_GREATER)
-                glDepthFunc(GL_GREATER);
-            else if (func == COMPARE_GREATER_OR_EQUAL)
-                glDepthFunc(GL_GEQUAL);
-            else if (func == COMPARE_DIFFERENT)
-                glDepthFunc(GL_NOTEQUAL);
+            glDepthFunc(func);
         }
 
         gl_state->current_depth_func = func;
+    }
+}
+
+void set_cull_func(CULL_FUNCTIONS func) {
+    if (gl_state->current_cull_func != func) {
+        if (func == CULL_DISABLED) {
+            glDisable(GL_CULL_FACE);
+        } else {
+            if (gl_state->current_cull_func == CULL_DISABLED)
+                glEnable(GL_CULL_FACE);
+
+            glCullFace(func);
+        }
+
+        gl_state->current_cull_func = func;
     }
 }
 
@@ -940,6 +964,7 @@ void prepare_material_to_draw(material_t *material) {
     }
 
     set_depth_func(material->depth_func);
+    set_cull_func(material->cull_func);
 
     // set camera matrices
     set_uniform_matrix(material, "PROJECTION", gl_state->current_camera->projection);
@@ -1139,7 +1164,7 @@ void update_camera_matrix(camera_t *camera) {
     transform_t *trans = camera->entity->transform;
     glm::vec3 forward_dir = get_forward(trans);
 
-    // makes the forward vector into a position in front of the camera
+    // makes the forward vector into a screen_position in front of the camera
     glm::vec3 center = trans->position + (forward_dir * 1000000.f);
 
     camera->view = glm::lookAt(trans->position, center, world_up());

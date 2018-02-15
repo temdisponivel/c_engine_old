@@ -75,7 +75,6 @@ enum TEXTURE_DEPTH_STENCIAL_VALUES {
 
 enum COMPARE_FUNCTIONS {
     COMPARE_DISABLED,
-    COMPARE_DEFAULT = COMPARE_DISABLED,
     COMPARE_LESS = GL_LESS,
     COMPARE_LESS_OR_EQUAL = GL_LEQUAL,
     COMPARE_EQUAL = GL_EQUAL,
@@ -84,6 +83,15 @@ enum COMPARE_FUNCTIONS {
     COMPARE_DIFFERENT = GL_NOTEQUAL,
     COMPARE_ALWAYS = GL_ALWAYS,
     COMPARE_NEVER = GL_NEVER,
+    COMPARE_DEFAULT = COMPARE_DISABLED,
+};
+
+enum CULL_FUNCTIONS {
+    CULL_DISABLED,
+    CULL_DEFAULT = CULL_DISABLED,
+    CULL_FRONT = GL_FRONT,
+    CULL_BACK = GL_BACK,
+    CULL_FRONT_AND_BACK = GL_FRONT_AND_BACK,
 };
 
 enum TEXTURE_COMPARE_MODE {
@@ -208,6 +216,7 @@ typedef struct uniform_definition {
 typedef struct uniform {
     int handle;
     int name_hash;
+    char *name;
     UNIFORM_TYPE type;
     uniform_values_union_t current_value;
 } uniform_t;
@@ -234,6 +243,7 @@ typedef struct material {
     list<uniform_t *> *uniforms;
 
     COMPARE_FUNCTIONS depth_func;
+    CULL_FUNCTIONS cull_func;
 } material_t;
 
 typedef struct mesh_renderer {
@@ -279,6 +289,8 @@ typedef struct camera {
 
 typedef struct graphics_state {
     COMPARE_FUNCTIONS current_depth_func;
+    CULL_FUNCTIONS current_cull_func;
+
     uint current_shader_program;
     camera_t *current_camera;
     list<mesh_renderer_t *> *rendereres;
@@ -293,6 +305,8 @@ void release_graphics();
 graphics_state_t get_graphics_state();
 
 void set_depth_func(COMPARE_FUNCTIONS func);
+
+void set_cull_func(CULL_FUNCTIONS func);
 
 void set_vbo_enable_state(mesh_t *mesh, bool state);
 
@@ -338,11 +352,12 @@ void create_and_add_uniform(
 
 material_t *create_material(
         shader_program_t *shader,
-        COMPARE_FUNCTIONS depth_func,
         list<uniform_definition_t> *uniform_definitions
 );
 
 void destroy_material(material_t *material);
+
+void change_shader(material_t *material, shader_program_t *shader);
 
 void set_uniform_bool(material_t *material, const char *name, bool value);
 

@@ -1,5 +1,6 @@
 #include <core.h>
 #include <graphics.h>
+#include <input.h>
 
 camera_t *perspective, *ortho, *camera;
 list<mesh_renderer_t *> *renderers;
@@ -82,9 +83,10 @@ void setup() {
 
         material_t *material = create_material(
                 shader,
-                COMPARE_LESS,
                 uniforms
         );
+
+        material->cull_func = CULL_BACK;
 
         mesh_renderer_t *renderer = create_mesh_renderer(material, mesh);
         add(renderers, renderer);
@@ -100,8 +102,8 @@ void setup() {
 }
 
 void update() {
-    if (glfwGetKey(get_window(), GLFW_KEY_TAB)) {
-        if (camera == perspective)
+    if (is_key_pressed(KEY_TAB)) {
+            if (camera == perspective)
             camera = ortho;
         else
             camera = perspective;
@@ -130,51 +132,73 @@ void update() {
         transform_t *transform = renderer->entity->transform;
         material_t *material = renderer->material;
 
-        transform->position = glm::vec3(0, 0, -1);
+        //transform->position = glm::vec3(0, 0, -1);
 
         transform->rotation = glm::quat();
         transform->rotation *= glm::angleAxis((float) (glfwGetTime() + i), glm::vec3(0, 0, 1));
-        transform->rotation *= glm::angleAxis((float) (glfwGetTime() + i), glm::vec3(1, 0, 0));
+        transform->rotation *= glm::angleAxis((float) (glfwGetTime() + i*2), glm::vec3(1, 0, 0));
         transform->rotation *= glm::angleAxis((float) (glfwGetTime() + i), glm::vec3(0, 1, 0));
 
-        if (glfwGetKey(window, GLFW_KEY_W)) {
+        if (is_key_down(KEY_W)) {
             camera->entity->transform->position.z -= dt;
-        } else if (glfwGetKey(window, GLFW_KEY_S)) {
+        } else if (is_key_down(KEY_S)) {
             camera->entity->transform->position.z += dt;
-        } else if (glfwGetKey(window, GLFW_KEY_A)) {
+        } else if (is_key_down(KEY_A)) {
             camera->entity->transform->position.x -= dt;
-        } else if (glfwGetKey(window, GLFW_KEY_D)) {
+        } else if (is_key_down(KEY_D)) {
             camera->entity->transform->position.x += dt;
         }
 
-        if (glfwGetKey(window, GLFW_KEY_8)) {
+        if (is_key_down(KEY_KP_8)) {
             camera->entity->transform->rotation *= glm::angleAxis(dt, world_right());
-        } else if (glfwGetKey(window, GLFW_KEY_2)) {
+        } else if (is_key_down(KEY_KP_2)) {
             camera->entity->transform->rotation *= glm::angleAxis(dt, world_left());
         }
 
-        if (glfwGetKey(window, GLFW_KEY_4)) {
+        if (is_key_down(KEY_KP_4)) {
             camera->entity->transform->rotation *= glm::angleAxis(dt, world_up());
-        } else if (glfwGetKey(window, GLFW_KEY_6)) {
+        } else if (is_key_down(KEY_KP_6)) {
             camera->entity->transform->rotation *= glm::angleAxis(dt, world_down());
         }
 
-        if (glfwGetKey(window, GLFW_KEY_RIGHT)) {
+        if (is_key_down(KEY_RIGHT)) {
             look_at(transform, world_right());
-        } else if (glfwGetKey(window, GLFW_KEY_LEFT)) {
+        } else if (is_key_down(KEY_LEFT)) {
             look_at(transform, world_left());
-        } else if (glfwGetKey(window, GLFW_KEY_UP)) {
+        } else if (is_key_down(KEY_UP)) {
             look_at(transform, world_up());
-        } else if (glfwGetKey(window, GLFW_KEY_DOWN)) {
+        } else if (is_key_down(KEY_DOWN)) {
             look_at(transform, world_down());
-        } else if (glfwGetKey(window, GLFW_KEY_R)) {
+        } else if (is_key_pressed(KEY_R)) {
             look_at(transform, world_forward());
         }
 
-        if (glfwGetKey(window, GLFW_KEY_L)) {
+        if (is_key_pressed(KEY_L)) {
             set_uniform_texture(material, "my_texture", texture_large);
-        } else if (glfwGetKey(window, GLFW_KEY_M)) {
+        } else if (is_key_pressed(KEY_M)) {
             set_uniform_texture(material, "my_texture", texture);
+        }
+
+        if (is_key_pressed(KEY_O)) {
+            material->cull_func = CULL_FRONT;
+        } else if (is_key_pressed(KEY_P)) {
+            material->cull_func = CULL_BACK;
+        }
+
+        if (is_key_pressed(KEY_LEFT_BRACKET)) {
+            material->depth_func = COMPARE_LESS;
+        } else if (is_key_pressed(KEY_LEFT_BRACKET)) {
+            material->depth_func = COMPARE_GREATER;
+        } else if (is_key_pressed(KEY_SLASH)) {
+            material->depth_func = COMPARE_DISABLED;
+        }
+
+        transform->position.y += get_mouse_delta_scroll().y * 10 * get_dt();
+
+        if (is_mouse_button_down(MOUSE_BUTTON_LEFT)) {
+            transform->position.x -= 10 * get_dt();
+        } else if (is_mouse_button_down(MOUSE_BUTTON_RIGHT)) {
+            transform->position.x += 10 * get_dt();
         }
     }
 }

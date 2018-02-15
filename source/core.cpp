@@ -3,6 +3,7 @@
 //
 
 #include <graphics.h>
+#include <input.h>
 #include "core.h"
 
 static engine_state_t *engine_state;
@@ -49,6 +50,7 @@ ENGINE_PREPARE_RESULT prepare(engine_callback_func update_callback) {
     engine_state->update_callback = update_callback;
 
     prepare_graphics();
+    prepare_input(window);
 
     return ENGINE_PREPARE_RESULT::SUCCESS;
 }
@@ -60,8 +62,13 @@ void loop() {
     while (!engine_state->break_game_loop) {
         engine_state->delta_time = end - start;
         start = (float) glfwGetTime();
+
+        update_input();
+
         simulate();
+
         engine_state->update_callback();
+
         draw();
 
         end = (float) glfwGetTime();
@@ -87,11 +94,11 @@ void draw() {
     draw_scene();
 
     glfwSwapBuffers(engine_state->window);
-    glfwPollEvents();
 }
 
 void release() {
     release_graphics();
+    release_input();
     glfwDestroyWindow(engine_state->window);
     memfree(engine_state);
     glfwTerminate();

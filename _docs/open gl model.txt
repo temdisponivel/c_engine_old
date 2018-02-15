@@ -2,7 +2,7 @@ VAO is the opengl representation of a model
 
 A VAO has a bunch of attribute lists
 	- Each attribute list is used to store some set of data about a 3D mode
-		- So one attribute list stores the vertex position, another stores the vertex colors, another stores the normals, etc
+		- So one attribute list stores the vertex screen_position, another stores the vertex colors, another stores the normals, etc
 
 
 A VBO is data that can be store in a attribute list
