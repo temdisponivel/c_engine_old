@@ -5,7 +5,7 @@
 camera_t *perspective, *ortho;
 list<mesh_renderer_t *> *renderers;
 texture_t *texture, *texture_large;
-shader_t *vertex_shader, *frag_shader;
+shader_t *vertex_shader, *frag_shader, *geometry_shader;
 shader_program_t *shader;
 mesh_t *mesh;
 model_t *model;
@@ -14,12 +14,15 @@ image_t *image, *image_large;
 void setup() {
     char *vertex_shader_code = read_file_text("data/shaders/default_vertex_shader.glsl");
     char *fragment_shader_code = read_file_text("data/shaders/default_fragment_shader.glsl");
+    char *geometry_shader_code = read_file_text("data/shaders/default_geometry_shader.glsl");
 
     vertex_shader = create_shader(vertex_shader_code, SHADER_TYPE::VERTEX_SHADER);
     frag_shader = create_shader(fragment_shader_code, SHADER_TYPE::FRAGMENT_SHADER);
+    geometry_shader = create_shader(geometry_shader_code, SHADER_TYPE::GEOMETRY_SHADER);
 
     free_file_text(vertex_shader_code);
     free_file_text(fragment_shader_code);
+    free_file_text(geometry_shader_code);
 
     // Needs to set this so that stb_image loads the way opengl expects it!
     stbi_set_flip_vertically_on_load(true);
@@ -39,6 +42,7 @@ void setup() {
     shader = create_shader_program(
             *vertex_shader,
             *frag_shader,
+            *geometry_shader,
             VERTEX_POSITION_ATTRIBUTE_NAME,
             VERTEX_COLOR_ATTRIBUTE_NAME,
             VERTEX_TEXTURE_COORD_ATTRIBUTE_NAME,
@@ -116,10 +120,25 @@ void setup() {
     ortho->clear_color = blue() + green();
 }
 
+void load_texture_2() {
+    image_t *image = create_image("data/textures/braid.png");
+    texture_t *texture = create_texture(image, get_default_texture_config());
+
+    for (int i = 0; i < renderers->length; ++i) {
+        mesh_renderer_t *renderer = renderers->items[i];
+        material_t *material = renderer->material;
+        set_uniform_texture(material, "my_texture", texture);
+    }
+}
+
 static int layer = 0;
 
 void update_renderers(camera_t *camera) {
     float dt = get_dt();
+
+    if (is_key_pressed(KEY_8)) {
+        load_texture_2();
+    }
 
     for (int i = 0; i < renderers->length; ++i) {
         mesh_renderer_t *renderer = renderers->items[i];

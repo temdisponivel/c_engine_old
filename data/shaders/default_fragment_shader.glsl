@@ -8,6 +8,7 @@ in vec3 pos;
 
 out vec4 final_color;
 uniform sampler2D my_texture;
+uniform sampler2D my_texture_2;
 uniform vec4 tint;
 uniform vec2 offset;
 uniform vec2 wrap;

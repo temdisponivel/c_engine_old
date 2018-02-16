@@ -472,13 +472,10 @@ shader_t *create_shader(
         const char *shader_code,
         SHADER_TYPE type
 ) {
-    GLenum shader_type;
-    if (type == SHADER_TYPE::VERTEX_SHADER)
-        shader_type = GL_VERTEX_SHADER;
-    else
-        shader_type = GL_FRAGMENT_SHADER;
+    ENSURE(shader_code != null);
+    ENSURE(strlen(shader_code) > 0);
 
-    uint handle = glCreateShader(shader_type);
+    uint handle = glCreateShader(type);
     CHECK_GL_ERROR();
 
     glShaderSource(handle, 1, &shader_code, 0);
@@ -505,6 +502,7 @@ void destroy_shader(shader_t *shader) {
 shader_program_t *create_shader_program(
         shader_t vertex_shader,
         shader_t fragment_shader,
+        shader_t geometry_shader,
         const char *vertex_position_name,
         const char *vertex_color_name,
         const char *vertex_tex_coord_name,
@@ -518,6 +516,12 @@ shader_program_t *create_shader_program(
 
     glAttachShader(handle, fragment_shader.handle);
     CHECK_GL_ERROR();
+
+    // Shader programs can have no geometry shader objects
+    if (geometry_shader.handle > 0) {
+        glAttachShader(handle, geometry_shader.handle);
+        CHECK_GL_ERROR();
+    }
 
     if (vertex_position_name != null)
         glBindAttribLocation(handle, VERTEX_POSITION_ATTRIBUTE_INDEX, vertex_position_name);
@@ -542,6 +546,7 @@ shader_program_t *create_shader_program(
     program->handle = handle;
     program->vertex_shader = vertex_shader;
     program->fragment_shader = fragment_shader;
+    program->geomtry_shader = geometry_shader;
 
     return program;
 }

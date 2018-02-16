@@ -239,8 +239,9 @@ typedef struct uniform {
 } uniform_t;
 
 enum SHADER_TYPE {
-    VERTEX_SHADER,
-    FRAGMENT_SHADER,
+    VERTEX_SHADER = GL_VERTEX_SHADER,
+    FRAGMENT_SHADER = GL_FRAGMENT_SHADER,
+    GEOMETRY_SHADER = GL_GEOMETRY_SHADER,
 };
 
 typedef struct shader {
@@ -253,6 +254,7 @@ typedef struct shader_program {
 
     shader_t vertex_shader;
     shader_t fragment_shader;
+    shader_t geomtry_shader;
 } shader_program_t;
 
 typedef struct material {
@@ -402,6 +404,7 @@ void destroy_shader(shader_t *shader);
 shader_program_t *create_shader_program(
         shader_t vertex_shader,
         shader_t fragment_shader,
+        shader_t geomtry_shader,
         const char *vertex_position_name,
         const char *vertex_color_name,
         const char *vertex_tex_coord_name,
