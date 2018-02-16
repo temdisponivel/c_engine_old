@@ -39,13 +39,6 @@
 typedef glm::vec4 color_rgba_t;
 // TODO: maybe we need a rgba 255 color type?
 
-enum COLOR_MASK {
-    COLOR_MASK_RED = 1 << 1,
-    COLOR_MASK_BLUE = 1 << 2,
-    COLOR_MASK_GREEN = 1 << 4,
-    COLOR_MASK_ALPHA = 1 << 8,
-};
-
 enum DEPTH_MASK {
     DEPTH_MASK_ENABLE = GL_TRUE,
     DEPTH_MASK_DISABLED = GL_FALSE,
@@ -272,6 +265,43 @@ typedef struct mesh_renderer {
     bool should_be_drawn;
 } mesh_renderer_t;
 
+typedef struct color_mask {
+    bool red;
+    bool green;
+    bool blue;
+    bool alpha;
+} color_mask_t;
+
+enum STENCIL_OP_ACTION {
+    STENCIL_OP_KEEP = GL_KEEP,
+    STENCIL_OP_ZERO = GL_ZERO,
+    STENCIL_OP_REPLACE = GL_REPLACE,
+    STENCIL_OP_INCR = GL_INCR,
+    STENCIL_OP_INCR_WRAP = GL_INCR_WRAP,
+    STENCIL_OP_DECR = GL_DECR,
+    STENCIL_OP_DECR_WRAP = GL_DECR_WRAP,
+    STENCIL_OP_INVERT = GL_INVERT,
+};
+
+typedef struct stencil_settings {
+    COMPARE_FUNCTIONS compare_func;
+    int reference_value;
+    uint stencil_func_mask;
+
+    STENCIL_OP_ACTION stencil_fail_action;
+    STENCIL_OP_ACTION depth_fail_stencil_pass_action;
+    STENCIL_OP_ACTION stencil_depth_pass;
+
+    uint stencil_mask;
+} stencil_settings_t;
+
+enum CLEAR_MASK {
+    CLEAR_COLOR = GL_COLOR_BUFFER_BIT,
+    CLEAR_DEPTH = GL_DEPTH_BUFFER_BIT,
+    CLEAR_STENCIL = GL_STENCIL_BUFFER_BIT,
+    CLEAR_ALL = CLEAR_COLOR | CLEAR_DEPTH | CLEAR_STENCIL,
+};
+
 enum CAMERA_TYPE {
     ORTHO,
     PERSPECTIVE,
@@ -301,6 +331,7 @@ typedef struct view_port {
 enum CAMERA_CLEAR_MODE {
     CAMERA_CLEAR_COLOR,
     CAMERA_CLEAR_DEPTH,
+    CAMERA_CLEAR_STENCIL,
     CAMERA_CLEAR_ALL,
     CAMERA_CLEAR_NONE,
     CAMERA_CLEAR_DEFAULT = CAMERA_CLEAR_ALL,
@@ -315,6 +346,10 @@ typedef struct camera {
     CAMERA_TYPE type;
     CAMERA_CLEAR_MODE clear_mode;
 
+    DEPTH_MASK depth_mask;
+    color_mask_t color_mask;
+    stencil_settings_t stencil_settings;
+
     view_port_t view_port;
     bool full_screen;
 
@@ -326,16 +361,13 @@ typedef struct camera {
     };
 } camera_t;
 
-typedef struct color_mask {
-    bool red;
-    bool green;
-    bool blue;
-    bool alpha;
-} color_mask_t;
-
 typedef struct graphics_state {
     COMPARE_FUNCTIONS current_depth_func;
     CULL_FUNCTIONS current_cull_func;
+
+    DEPTH_MASK depth_mask;
+    color_mask_t color_mask;
+    stencil_settings_t current_stencil_config;
 
     uint current_shader_program;
     camera_t *current_camera;
@@ -343,18 +375,9 @@ typedef struct graphics_state {
     list<camera_t *> *cameras;
 
     color_rgba_t clear_color;
-    DEPTH_MASK depth_mask;
-
-    color_mask_t color_mask;
 
     view_port_t current_view_port;
 } graphics_state_t;
-
-enum CLEAR_MASK {
-    CLEAR_COLOR = GL_COLOR_BUFFER_BIT,
-    CLEAR_DEPTH = GL_COLOR_BUFFER_BIT,
-    CLEAR_ALL = CLEAR_COLOR | CLEAR_DEPTH,
-};
 
 #define DEFAULT_COMPARE_FUNC GL_LESS
 
@@ -374,6 +397,8 @@ graphics_state_t get_graphics_state();
 void set_depth_func(COMPARE_FUNCTIONS func);
 
 void set_cull_func(CULL_FUNCTIONS func);
+
+void set_stencil_settings(stencil_settings_t settings);
 
 void set_vbo_enable_state(mesh_t *mesh, bool state);
 

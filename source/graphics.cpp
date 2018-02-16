@@ -10,7 +10,6 @@
 
 #include "stb_image.h"
 
-
 image_t *create_image(const char *image_file_path) {
     image_t *image;
 
@@ -929,6 +928,38 @@ color_rgba_t transparent() {
     return glm::vec4(0, 0, 0, 0);
 }
 
+color_mask_t get_default_color_mask() {
+    color_mask_t color_mask;
+    color_mask.red = true;
+    color_mask.green = true;
+    color_mask.blue = true;
+    color_mask.alpha = true;
+    return color_mask;
+}
+
+stencil_settings_t get_default_stencil_settings() {
+    stencil_settings_t stencil_settings;
+
+    stencil_settings.compare_func = COMPARE_DISABLED;
+    stencil_settings.stencil_func_mask = 0xFF;
+
+    stencil_settings.stencil_fail_action = STENCIL_OP_KEEP;
+    stencil_settings.depth_fail_stencil_pass_action = STENCIL_OP_KEEP;
+    stencil_settings.stencil_depth_pass = STENCIL_OP_REPLACE;
+
+    stencil_settings.reference_value = 1;
+    stencil_settings.stencil_func_mask = 0xFF;
+
+    return stencil_settings;
+}
+
+CULL_FUNCTIONS get_default_cull_func() {
+    return CULL_DISABLED;
+}
+
+COMPARE_FUNCTIONS get_default_depth_func() {
+    return COMPARE_DISABLED;
+}
 
 void prepare_graphics() {
     gl_state = (graphics_state_t *) memalloc(sizeof(graphics_state_t));
@@ -936,19 +967,18 @@ void prepare_graphics() {
     gl_state->rendereres = create_list<mesh_renderer_t *>(10);
     gl_state->cameras = create_list<camera_t *>(1);
 
-    gl_state->current_cull_func = CULL_DISABLED;
-    gl_state->current_depth_func = COMPARE_DISABLED;
+    gl_state->current_cull_func = get_default_cull_func();
+    gl_state->current_depth_func = get_default_depth_func();
 
     gl_state->current_view_port = get_screen_view_port();
 
-    gl_state->color_mask.red = true;
-    gl_state->color_mask.green = true;
-    gl_state->color_mask.blue = true;
-    gl_state->color_mask.alpha = true;
+    gl_state->color_mask = get_default_color_mask();
 
     gl_state->depth_mask = DEPTH_MASK_DEFAULT;
 
     gl_state->clear_color = black();
+
+    gl_state->current_stencil_config = get_default_stencil_settings();
 }
 
 void release_graphics() {
@@ -980,6 +1010,41 @@ void set_depth_func(COMPARE_FUNCTIONS func) {
 
         gl_state->current_depth_func = func;
     }
+}
+
+void set_stencil_settings(stencil_settings_t settings) {
+    stencil_settings_t current_settings = gl_state->current_stencil_config;
+
+    if (current_settings.compare_func != settings.compare_func ||
+        current_settings.reference_value != settings.reference_value ||
+        current_settings.stencil_func_mask != settings.stencil_func_mask
+    ) {
+        if (settings.compare_func == COMPARE_DISABLED) {
+            glDisable(GL_STENCIL_TEST);
+        } else {
+            if (current_settings.compare_func == COMPARE_DISABLED)
+                glEnable(GL_STENCIL_TEST);
+
+            glStencilFunc(settings.compare_func, settings.reference_value, settings.stencil_func_mask);
+        }
+    }
+
+    if (current_settings.stencil_fail_action != settings.stencil_fail_action ||
+        current_settings.depth_fail_stencil_pass_action != settings.depth_fail_stencil_pass_action ||
+        current_settings.stencil_depth_pass != settings.stencil_depth_pass
+    ) {
+        glStencilOp(
+                settings.stencil_fail_action,
+                settings.depth_fail_stencil_pass_action,
+                settings.depth_fail_stencil_pass_action
+        );
+    }
+
+    if (current_settings.stencil_mask != settings.stencil_mask) {
+        glStencilMask(settings.stencil_mask);
+    }
+
+    gl_state->current_stencil_config = settings;
 }
 
 void set_cull_func(CULL_FUNCTIONS func) {
@@ -1146,6 +1211,10 @@ camera_t *create_camera() {
     camera->view_port.size = get_screen_size();
     camera->full_screen = true;
 
+    camera->depth_mask = DEPTH_MASK_DEFAULT;
+    camera->color_mask = get_default_color_mask();
+    camera->stencil_settings = get_default_stencil_settings();
+
     add(gl_state->cameras, camera);
 
     return camera;
@@ -1238,6 +1307,8 @@ void use_camera(camera_t *camera) {
 
     set_view_port(camera->view_port);
     set_clear_color(camera->clear_color);
+    set_stencil_settings(camera->stencil_settings);
+    set_depth_mask(camera->depth_mask);
 
     update_camera_matrix(gl_state->current_camera);
 
@@ -1249,6 +1320,9 @@ void use_camera(camera_t *camera) {
                 break;
             case CAMERA_CLEAR_DEPTH:
                 clear_mask = CLEAR_DEPTH;
+                break;
+            case CAMERA_CLEAR_STENCIL:
+                clear_mask = CLEAR_STENCIL;
                 break;
             case CAMERA_CLEAR_ALL:
                 clear_mask = CLEAR_ALL;
