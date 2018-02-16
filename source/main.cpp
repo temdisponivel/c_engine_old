@@ -98,21 +98,22 @@ void setup() {
     }
 
     perspective = create_perspective_camera(45.f, 0, .1f, 100.f);
-    ortho = create_ortho_camera(-1, 1, -1, 1, -100, 100);
+    ortho = create_ortho_camera(-1, 1, 1, -1, -100, 100);
 
     //perspective->clear_mode = CAMERA_CLEAR_NONE;
     //ortho->clear_mode = CAMERA_CLEAR_NONE;
 
     glm::vec2 screen_size = get_screen_size();
-    perspective->view_port.full_screen = false;
-    perspective->view_port.position = glm::ivec2(0, 0);
+    perspective->full_screen = false;
+    perspective->view_port.position = glm::ivec2(1024/2, 0);
     perspective->view_port.size = glm::ivec2(screen_size.x / 2, screen_size.y / 2);
 
-    ortho->view_port.full_screen = false;
-    ortho->view_port.position = glm::ivec2(screen_size.x / 2, screen_size.y / 2);
+    ortho->full_screen = false;
+    ortho->view_port.position = glm::ivec2(0, 0);
     ortho->view_port.size = glm::ivec2(screen_size.x / 2, screen_size.y / 2);
 
-    glClearColor(1, 1, 1, 1);
+    perspective->clear_color = red() + green();
+    ortho->clear_color = blue() + green();
 }
 
 void update_renderers(camera_t *camera) {

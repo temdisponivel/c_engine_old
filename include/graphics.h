@@ -39,6 +39,19 @@
 typedef glm::vec4 color_rgba_t;
 // TODO: maybe we need a rgba 255 color type?
 
+enum COLOR_MASK {
+    COLOR_MASK_RED = 1 << 1,
+    COLOR_MASK_BLUE = 1 << 2,
+    COLOR_MASK_GREEN = 1 << 4,
+    COLOR_MASK_ALPHA = 1 << 8,
+};
+
+enum DEPTH_MASK {
+    DEPTH_MASK_ENABLE = GL_TRUE,
+    DEPTH_MASK_DISABLED = GL_FALSE,
+    DEPTH_MASK_DEFAULT = DEPTH_MASK_ENABLE,
+};
+
 typedef struct model {
     list<int> *indices;
     list<float> *positions;
@@ -281,7 +294,6 @@ typedef struct orthogonal_camera {
 typedef struct view_port {
     glm::ivec2 size;
     glm::ivec2 position;
-    bool full_screen;
 } view_port_t;
 
 enum CAMERA_CLEAR_MODE {
@@ -300,7 +312,9 @@ typedef struct camera {
 
     CAMERA_TYPE type;
     CAMERA_CLEAR_MODE clear_mode;
+
     view_port_t view_port;
+    bool full_screen;
 
     color_rgba_t clear_color;
 
@@ -310,6 +324,13 @@ typedef struct camera {
     };
 } camera_t;
 
+typedef struct color_mask {
+    bool red;
+    bool green;
+    bool blue;
+    bool alpha;
+} color_mask_t;
+
 typedef struct graphics_state {
     COMPARE_FUNCTIONS current_depth_func;
     CULL_FUNCTIONS current_cull_func;
@@ -318,9 +339,29 @@ typedef struct graphics_state {
     camera_t *current_camera;
     list<mesh_renderer_t *> *rendereres;
     list<camera_t *> *cameras;
+
+    color_rgba_t clear_color;
+    DEPTH_MASK depth_mask;
+
+    color_mask_t color_mask;
+
+    view_port_t current_view_port;
 } graphics_state_t;
 
+enum CLEAR_MASK {
+    CLEAR_COLOR = GL_COLOR_BUFFER_BIT,
+    CLEAR_DEPTH = GL_COLOR_BUFFER_BIT,
+    CLEAR_ALL = CLEAR_COLOR | CLEAR_DEPTH,
+};
+
 #define DEFAULT_COMPARE_FUNC GL_LESS
+
+color_rgba_t black();
+color_rgba_t white();
+color_rgba_t red();
+color_rgba_t green();
+color_rgba_t blue();
+color_rgba_t transparent();
 
 void prepare_graphics();
 
@@ -431,6 +472,8 @@ void prepare_material_to_draw(material_t *material);
 
 void draw_renderer(mesh_renderer_t *renderer);
 
+void draw_scene();
+
 void draw_all_renderers();
 
 void draw_renderers(list<mesh_renderer_t *> *renderers);
@@ -458,5 +501,19 @@ void update_camera_matrix(camera_t *camera);
 void use_camera(camera_t *camera);
 
 void update_cameras_view_port_to_screen_size();
+
+view_port_t get_screen_view_port();
+
+void set_view_port(view_port_t view_port);
+
+void clear_current_view_port(CLEAR_MASK clear_mask);
+
+void clear_view_port(view_port_t view_port, CLEAR_MASK clear_mask);
+
+void set_clear_color(color_rgba_t color);
+
+void set_depth_mask(DEPTH_MASK depth_mask);
+
+void set_color_mask(color_rgba_t mask);
 
 #endif //CYNICAL_ENGINE_CPP_GRAPHICS_H

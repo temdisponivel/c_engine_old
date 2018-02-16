@@ -60,7 +60,7 @@ ENGINE_PREPARE_RESULT prepare(engine_params_t params) {
 
     window->size = params.window_size;
     window->glfw_window = glfw_window;
-    window->title = (char *) memalloc(strlen(params.window_title) * sizeof(char));
+    window->title = (char *) memalloc((strlen(params.window_title) + 1) * sizeof(char));
     strcpy(window->title, params.window_title);
 
     engine_state->window = window;
@@ -101,12 +101,13 @@ void simulate() {
     }
 }
 
-void draw_scene() {
-    //TODO: maybe move the camera change to here instead of draw_all_renderers?!
-    draw_all_renderers();
-}
-
 void draw() {
+    view_port_t screen_vp = get_screen_view_port();
+    color_rgba_t clear_color = black();
+
+    set_clear_color(clear_color);
+    clear_view_port(screen_vp, CLEAR_ALL);
+
     // NOTE: We might want to draw multiple times to different buffers!
     draw_scene();
 

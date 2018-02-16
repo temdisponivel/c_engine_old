@@ -8,6 +8,8 @@ finish implementing all window functions
 
 implement stencil
 
+make view_ports relative to the screen size (ranging from 0 ~ 1)
+
 make sure the input system is good enough, maybe query the key states ourselfs instead of getting the callback
 
 test the layout of the input (it seems to NOT be ABTN2)
