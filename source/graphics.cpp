@@ -904,6 +904,8 @@ void prepare_graphics() {
     gl_state = (graphics_state_t *) memalloc(sizeof(graphics_state_t));
 
     gl_state->rendereres = create_list<mesh_renderer_t *>(10);
+    gl_state->cameras = create_list<camera_t *>(1);
+
     gl_state->current_cull_func = CULL_DISABLED;
     gl_state->current_depth_func = COMPARE_DISABLED;
 }
@@ -1053,13 +1055,18 @@ void set_vbo_enable_state(mesh_t *mesh, bool state) {
 }
 
 void draw_all_renderers() {
-    draw_renderers(gl_state->rendereres);
+    list<camera_t *> *cameras = gl_state->cameras;
+    uint length = cameras->length;
+    for (int i = 0; i < length; ++i) {
+        camera_t *camera = cameras->items[i];
+        use_camera(camera);
+
+        draw_renderers(gl_state->rendereres);
+    }
 }
 
 void draw_renderers(list<mesh_renderer_t *> *renderers) {
     ENSURE(gl_state->current_camera != null);
-
-    update_camera_matrix(gl_state->current_camera);
 
     for (int i = 0; i < renderers->length; ++i) {
         draw_renderer(renderers->items[i]);
@@ -1087,8 +1094,15 @@ void destroy_mesh_renderer(mesh_renderer_t *renderer) {
 
 camera_t *create_camera() {
     camera_t *camera = (camera_t *) memalloc(sizeof(camera_t));
+
     camera->entity = create_entity(BUILT_IN_ENTITIES::CAMERA, camera);
     camera->_matrix = glm::mat4();
+    camera->clear_mode = CAMERA_CLEAR_DEFAULT;
+    camera->view_port.size = get_screen_size();
+    camera->view_port.full_screen = true;
+
+    add(gl_state->cameras, camera);
+
     return camera;
 }
 
@@ -1151,6 +1165,7 @@ camera_t *create_ortho_camera(
 }
 
 void destroy_camera(camera_t *camera) {
+    remove(gl_state->cameras, camera);
     destroy_entity(camera->entity);
     memfree(camera);
 }
@@ -1174,5 +1189,48 @@ void update_camera_matrix(camera_t *camera) {
 void use_camera(camera_t *camera) {
     if (gl_state->current_camera != camera) {
         gl_state->current_camera = camera;
+    }
+
+    update_camera_matrix(gl_state->current_camera);
+
+    glm::ivec2 pos = camera->view_port.position;
+    glm::ivec2 size = camera->view_port.size;
+
+    glViewport(pos.x, pos.y, size.x, size.y);
+
+    if (camera->clear_mode != CAMERA_CLEAR_NONE) {
+        uint clear_mask = 0;
+        switch  (camera->clear_mode) {
+            case CAMERA_CLEAR_COLOR:
+                clear_mask = GL_COLOR_BUFFER_BIT;
+                break;
+            case CAMERA_CLEAR_DEPTH:
+                clear_mask = GL_DEPTH_BUFFER_BIT;
+                break;
+            case CAMERA_CLEAR_ALL:
+                clear_mask = GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT;
+                break;
+        }
+
+        color_rgba_t color = camera->clear_color;
+        glClearColor(color.x, color.y, color.z, color.w);
+
+        // TODO: maybe validate if the viewport is fullscreen before enabling scissors test?!
+        // Only clear the view-port, not the whole screen
+        glEnable(GL_SCISSOR_TEST);
+        glScissor(pos.x, pos.y, size.x, size.y);
+        glClear(clear_mask);
+        glDisable(GL_SCISSOR_TEST);
+    }
+}
+
+void update_cameras_view_port_to_screen_size() {
+    list<camera_t *> *cameras = gl_state->cameras;
+    uint length = cameras->length;
+    for (int i = 0; i < length; ++i) {
+        camera_t *camera = cameras->items[i];
+        if (camera->view_port.full_screen) {
+            camera->view_port.size = get_screen_size();
+        }
     }
 }

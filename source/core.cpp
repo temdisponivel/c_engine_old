@@ -16,41 +16,57 @@ static void error_callback(int error, const char *description) {
     fprintf(stderr, "Error: %s\n", description);
 }
 
-ENGINE_PREPARE_RESULT prepare(engine_callback_func update_callback) {
+static void on_window_resize(GLFWwindow *window, int width, int heigh) {
+    engine_state->window->size = glm::ivec2(width, heigh);
+    update_cameras_view_port_to_screen_size();
+}
+
+ENGINE_PREPARE_RESULT prepare(engine_params_t params) {
     engine_state = (engine_state_t *) memalloc(sizeof(engine_state_t));
 
     memset(engine_state, 0, sizeof(engine_state_t));
 
     // TODO: receive these configs through parameters
 
-    GLFWwindow *window;
+    GLFWwindow *glfw_window;
     glfwSetErrorCallback(error_callback);
 
     if (!glfwInit())
-        return ENGINE_PREPARE_RESULT::ERROR_GLFW_INIT;
+        return ENGINE_PREPARE_RESULT::ERROR_INIT_DEPS;
 
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, params.gl_major_version);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, params.gl_major_version);
 
-    window = glfwCreateWindow(640, 480, "Cynical Engine", NULL, NULL);
+    glfw_window = glfwCreateWindow(params.window_size.x, params.window_size.y, params.window_title, NULL, NULL);
 
-    if (window == null) {
+    if (glfw_window == null) {
         glfwTerminate();
         return ENGINE_PREPARE_RESULT::ERROR_OPEN_WINDOW;
     }
 
-    glfwMakeContextCurrent(window);
+    glfwMakeContextCurrent(glfw_window);
+    CHECK_GL_ERROR();
+
     glewInit();
     glfwSwapInterval(1);
 
+    glfwSetWindowSizeCallback(glfw_window, &on_window_resize);
+
+    ENSURE(params.update_callback != null);
+
+    engine_state->update_callback = params.update_callback;
+
+    window_t *window = (window_t *) memalloc(sizeof(window_t));
+
+    window->size = params.window_size;
+    window->glfw_window = glfw_window;
+    window->title = (char *) memalloc(strlen(params.window_title) * sizeof(char));
+    strcpy(window->title, params.window_title);
+
     engine_state->window = window;
 
-    ENSURE(update_callback != null);
-
-    engine_state->update_callback = update_callback;
-
     prepare_graphics();
-    prepare_input(window);
+    prepare_input(glfw_window);
 
     return ENGINE_PREPARE_RESULT::SUCCESS;
 }
@@ -80,12 +96,13 @@ void simulate() {
     // TODO: handle input in a more appropriate place!! Maybe create a input file or somethign
     // TODO: handle input in a more appropriate place!! Maybe create a input file or somethign
 
-    if (glfwWindowShouldClose(engine_state->window)) {
+    if (glfwWindowShouldClose(engine_state->window->glfw_window)) {
         engine_state->break_game_loop = true;
     }
 }
 
 void draw_scene() {
+    //TODO: maybe move the camera change to here instead of draw_all_renderers?!
     draw_all_renderers();
 }
 
@@ -93,13 +110,14 @@ void draw() {
     // NOTE: We might want to draw multiple times to different buffers!
     draw_scene();
 
-    glfwSwapBuffers(engine_state->window);
+    glfwSwapBuffers(engine_state->window->glfw_window);
 }
 
 void release() {
     release_graphics();
     release_input();
-    glfwDestroyWindow(engine_state->window);
+    glfwDestroyWindow(engine_state->window->glfw_window);
+    memfree(engine_state->window->title);
     memfree(engine_state);
     glfwTerminate();
 }
@@ -112,6 +130,15 @@ float get_dt() {
     return engine_state->delta_time;
 }
 
-GLFWwindow *get_window() {
+window_t *get_window() {
     return engine_state->window;
+}
+
+glm::ivec2 get_screen_size() {
+    return engine_state->window->size;
+}
+
+float get_window_ratio() {
+    glm::ivec2 size = engine_state->window->size;
+    return size.x / (float) size.y;
 }

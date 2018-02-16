@@ -2,7 +2,7 @@
 #include <graphics.h>
 #include <input.h>
 
-camera_t *perspective, *ortho, *camera;
+camera_t *perspective, *ortho;
 list<mesh_renderer_t *> *renderers;
 texture_t *texture, *texture_large;
 shader_t *vertex_shader, *frag_shader;
@@ -47,6 +47,11 @@ void setup() {
 
     renderers = create_list<mesh_renderer_t *>(100);
     for (int j = 0; j < RENDER_QUANTITY; ++j) {
+
+        // TODO: read this form file
+        // TODO: read this form file
+        // TODO: read this form file
+        // TODO: read this form file
 
         uniform_definition_t mvp_uniform = {};
         mvp_uniform.name = (char *) "MVP";
@@ -95,37 +100,23 @@ void setup() {
     perspective = create_perspective_camera(45.f, 0, .1f, 100.f);
     ortho = create_ortho_camera(-1, 1, -1, 1, -100, 100);
 
-    camera = ortho;
-    use_camera(camera);
+    //perspective->clear_mode = CAMERA_CLEAR_NONE;
+    //ortho->clear_mode = CAMERA_CLEAR_NONE;
+
+    glm::vec2 screen_size = get_screen_size();
+    perspective->view_port.full_screen = false;
+    perspective->view_port.position = glm::ivec2(0, 0);
+    perspective->view_port.size = glm::ivec2(screen_size.x / 2, screen_size.y / 2);
+
+    ortho->view_port.full_screen = false;
+    ortho->view_port.position = glm::ivec2(screen_size.x / 2, screen_size.y / 2);
+    ortho->view_port.size = glm::ivec2(screen_size.x / 2, screen_size.y / 2);
 
     glClearColor(1, 1, 1, 1);
 }
 
-void update() {
-    if (is_key_pressed(KEY_TAB)) {
-            if (camera == perspective)
-            camera = ortho;
-        else
-            camera = perspective;
-
-        use_camera(camera);
-    }
-
-    float ratio;
-    int width, height;
-
-    glfwGetFramebufferSize(get_window(), &width, &height);
-    ratio = width / (float) height;
-    glViewport(0, 0, width, height);
-    glClear(GL_DEPTH_BUFFER_BIT);
-    glClear(GL_COLOR_BUFFER_BIT);
-
-    if (camera == perspective)
-        camera->perspective.aspect_ratio = ratio;
-
+void update_renderers(camera_t *camera) {
     float dt = get_dt();
-
-    GLFWwindow *window = get_window();
 
     for (int i = 0; i < renderers->length; ++i) {
         mesh_renderer_t *renderer = renderers->items[i];
@@ -203,6 +194,16 @@ void update() {
     }
 }
 
+void update() {
+    glClear(GL_DEPTH_BUFFER_BIT);
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    perspective->perspective.aspect_ratio = get_window_ratio();
+
+    update_renderers(perspective);
+    update_renderers(ortho);
+}
+
 void close() {
     for (int k = 0; k < renderers->length; ++k) {
         mesh_renderer_t *renderer = renderers->items[k];
@@ -225,7 +226,15 @@ void close() {
 }
 
 int main(void) {
-    prepare(&update);
+    // TODO: Read this from file
+    engine_params_t params;
+    params.window_title = (char *) "My game!!!";
+    params.window_size = glm::ivec2(1024, 768);
+    params.update_callback = &update;
+    params.gl_major_version = 4;
+    params.gl_minor_version = 0;
+
+    prepare(params);
 
     setup();
 

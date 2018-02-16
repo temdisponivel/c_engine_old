@@ -11,6 +11,7 @@
 #include "stb_image.h"
 #include <collections.h>
 #include "entities.h"
+#include "core.h"
 
 #define HANDLE_NONE 0
 
@@ -34,6 +35,9 @@
 #define TEXTURE_7 GL_TEXTURE7
 #define TEXTURE_9 GL_TEXTURE8
 #define TEXTURE_8 GL_TEXTURE9
+
+typedef glm::vec4 color_rgba_t;
+// TODO: maybe we need a rgba 255 color type?
 
 typedef struct model {
     list<int> *indices;
@@ -274,12 +278,31 @@ typedef struct orthogonal_camera {
     float far_plane;
 } orthogonal_camera_t;
 
+typedef struct view_port {
+    glm::ivec2 size;
+    glm::ivec2 position;
+    bool full_screen;
+} view_port_t;
+
+enum CAMERA_CLEAR_MODE {
+    CAMERA_CLEAR_COLOR,
+    CAMERA_CLEAR_DEPTH,
+    CAMERA_CLEAR_ALL,
+    CAMERA_CLEAR_NONE,
+    CAMERA_CLEAR_DEFAULT = CAMERA_CLEAR_ALL,
+};
+
 typedef struct camera {
     entity_t *entity;
     glm::mat4 view;
     glm::mat4 projection;
     glm::mat4 _matrix;
+
     CAMERA_TYPE type;
+    CAMERA_CLEAR_MODE clear_mode;
+    view_port_t view_port;
+
+    color_rgba_t clear_color;
 
     union {
         orthogonal_camera_t ortho;
@@ -294,6 +317,7 @@ typedef struct graphics_state {
     uint current_shader_program;
     camera_t *current_camera;
     list<mesh_renderer_t *> *rendereres;
+    list<camera_t *> *cameras;
 } graphics_state_t;
 
 #define DEFAULT_COMPARE_FUNC GL_LESS
@@ -432,5 +456,7 @@ void destroy_camera(camera_t *camera);
 void update_camera_matrix(camera_t *camera);
 
 void use_camera(camera_t *camera);
+
+void update_cameras_view_port_to_screen_size();
 
 #endif //CYNICAL_ENGINE_CPP_GRAPHICS_H

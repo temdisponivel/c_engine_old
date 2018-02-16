@@ -1,10 +1,12 @@
-create a window struct to replace the GLFWwindow struct
-
 implement joystick input
 
 create a time handler that will have delta time, time scale, etc
 
 cursor manipulation (set pos, image, etc)
+
+finish implementing all window functions
+
+implement stencil
 
 make sure the input system is good enough, maybe query the key states ourselfs instead of getting the callback
 
