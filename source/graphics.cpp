@@ -1321,7 +1321,7 @@ void set_color_mask(color_mask_t mask) {
         mask.green != current.green ||
         mask.blue != current.blue ||
         mask.alpha != current.alpha
-            ) {
+    ) {
         glColorMask((GLboolean) mask.red, (GLboolean) mask.green, (GLboolean) mask.blue, (GLboolean) mask.alpha);
         gl_state->color_mask = mask;
     }

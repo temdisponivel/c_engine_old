@@ -102,16 +102,17 @@ void simulate() {
 }
 
 void draw() {
-    view_port_t screen_vp = get_screen_view_port();
-    color_rgba_t clear_color = black();
-
-    set_clear_color(clear_color);
-    clear_view_port(screen_vp, CLEAR_ALL);
 
     // NOTE: We might want to draw multiple times to different buffers!
     draw_scene();
 
     glfwSwapBuffers(engine_state->window->glfw_window);
+
+    view_port_t screen_vp = get_screen_view_port();
+    color_rgba_t clear_color = white();
+
+    set_clear_color(clear_color);
+    clear_view_port(screen_vp, CLEAR_ALL);
 }
 
 void release() {

@@ -105,7 +105,7 @@ void setup() {
 
     glm::vec2 screen_size = get_screen_size();
     perspective->full_screen = false;
-    perspective->view_port.position = glm::ivec2(1024/2, 0);
+    perspective->view_port.position = glm::ivec2(1024 / 2, 0);
     perspective->view_port.size = glm::ivec2(screen_size.x / 2, screen_size.y / 2);
 
     ortho->full_screen = false;
@@ -115,6 +115,8 @@ void setup() {
     perspective->clear_color = red() + green();
     ortho->clear_color = blue() + green();
 }
+
+static int layer = 0;
 
 void update_renderers(camera_t *camera) {
     float dt = get_dt();
@@ -128,7 +130,7 @@ void update_renderers(camera_t *camera) {
 
         transform->rotation = glm::quat();
         transform->rotation *= glm::angleAxis((float) (glfwGetTime() + i), glm::vec3(0, 0, 1));
-        transform->rotation *= glm::angleAxis((float) (glfwGetTime() + i*2), glm::vec3(1, 0, 0));
+        transform->rotation *= glm::angleAxis((float) (glfwGetTime() + i * 2), glm::vec3(1, 0, 0));
         transform->rotation *= glm::angleAxis((float) (glfwGetTime() + i), glm::vec3(0, 1, 0));
 
         if (is_key_down(KEY_W)) {
@@ -192,6 +194,40 @@ void update_renderers(camera_t *camera) {
         } else if (is_mouse_button_down(MOUSE_BUTTON_RIGHT)) {
             transform->position.x += 10 * get_dt();
         }
+    }
+
+    color_mask_t mask;
+
+    mask.red = true;
+    mask.green = true;
+    mask.blue = true;
+    mask.alpha = true;
+
+    bool pressed = false;
+    if (is_key_pressed(KEY_1)) {
+        mask.red = false;
+        pressed = true;
+    } else if (is_key_pressed(KEY_2)) {
+        mask.green = false;
+        pressed = true;
+    } else if (is_key_pressed(KEY_3)) {
+        mask.blue = false;
+        pressed = true;
+    }
+
+    if (pressed)
+        set_color_mask(mask);
+
+    if (is_key_pressed(KEY_SPACE)) {
+        set_depth_mask(DEPTH_MASK_DISABLED);
+    } else if (is_key_pressed(KEY_H)) {
+        set_depth_mask(DEPTH_MASK_ENABLE);
+    }
+
+    if (is_key_pressed(KEY_BACKSPACE)) {
+        MESSAGE("CLEAR ALL");
+        set_clear_color(black());
+        clear_view_port(get_screen_view_port(), CLEAR_ALL);
     }
 }
 

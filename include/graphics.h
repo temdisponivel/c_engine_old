@@ -514,6 +514,6 @@ void set_clear_color(color_rgba_t color);
 
 void set_depth_mask(DEPTH_MASK depth_mask);
 
-void set_color_mask(color_rgba_t mask);
+void set_color_mask(color_mask_t mask);
 
 #endif //CYNICAL_ENGINE_CPP_GRAPHICS_H
