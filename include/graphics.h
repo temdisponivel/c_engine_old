@@ -256,6 +256,8 @@ typedef struct material {
 
     COMPARE_FUNCTIONS depth_func;
     CULL_FUNCTIONS cull_func;
+
+    stencil_settings_t stencil_settings;
 } material_t;
 
 typedef struct mesh_renderer {

@@ -94,7 +94,7 @@ void setup() {
 
     create_texture("data/textures/the_witness.png", &texture_large, &image_large);
     create_texture("data/textures/the_witness_small.png", &texture, &image);
-    create_texture("data/textures/mask.png", &mask_texture, &mask_image);
+    create_texture("data/textures/braid.png", &mask_texture, &mask_image);
 
     model = create_model("data/models/plane.cm");
     mesh = create_mesh(model);
@@ -143,9 +143,13 @@ void setup() {
 
     perspective = create_perspective_camera(45.f, 0, .1f, 100.f);
     perspective->stencil_settings = get_normal_camera_stencil_setting();
+    perspective->clear_mode = CAMERA_CLEAR_NONE;
+    perspective->culling_mask = ((0xFF) & ~(1 << 2));
 
     ortho = create_ortho_camera(-1, 1, 1, -1, -100, 100);
     ortho->stencil_settings = get_normal_camera_stencil_setting();
+    ortho->clear_mode = CAMERA_CLEAR_NONE;
+    ortho->culling_mask = ((0xFF) & ~(1 << 2));
 
     //perspective->clear_mode = CAMERA_CLEAR_NONE;
     //ortho->clear_mode = CAMERA_CLEAR_NONE;
@@ -183,6 +187,16 @@ void update_renderers(camera_t *camera) {
         load_texture_2();
     }
 
+    if (is_key_down(KEY_W)) {
+        mask_renderer->entity->transform->position.y -= dt;
+    } else if (is_key_down(KEY_S)) {
+        mask_renderer->entity->transform->position.y += dt;
+    } else if (is_key_down(KEY_A)) {
+        mask_renderer->entity->transform->position.x -= dt;
+    } else if (is_key_down(KEY_D)) {
+        mask_renderer->entity->transform->position.x += dt;
+    }
+
     for (int i = 0; i < renderers->length; ++i) {
         mesh_renderer_t *renderer = renderers->items[i];
         transform_t *transform = renderer->entity->transform;
@@ -195,16 +209,6 @@ void update_renderers(camera_t *camera) {
             transform->rotation *= glm::angleAxis((float) (glfwGetTime() + i), glm::vec3(0, 0, 1));
             transform->rotation *= glm::angleAxis((float) (glfwGetTime() + i * 2), glm::vec3(1, 0, 0));
             transform->rotation *= glm::angleAxis((float) (glfwGetTime() + i), glm::vec3(0, 1, 0));
-        }
-
-        if (is_key_down(KEY_W)) {
-            mask_renderer->entity->transform->position.y -= dt;
-        } else if (is_key_down(KEY_S)) {
-            mask_renderer->entity->transform->position.y += dt;
-        } else if (is_key_down(KEY_A)) {
-            mask_renderer->entity->transform->position.x -= dt;
-        } else if (is_key_down(KEY_D)) {
-            mask_renderer->entity->transform->position.x += dt;
         }
 
         if (is_key_down(KEY_KP_8)) {

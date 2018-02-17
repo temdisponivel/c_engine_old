@@ -2,7 +2,9 @@ create a time handler that will have delta time, time scale, etc
 
 add FBO (frame buffer objects) in order to have multiple cameras drawing to multiple texture, post-processing, etc
 
-implement stencil
+move stencil settings to material
+
+revisite the relation between camera, material, buffers (color, depth, stencil), etc
 
 make view_ports relative to the screen size (ranging from 0 ~ 1)
 
