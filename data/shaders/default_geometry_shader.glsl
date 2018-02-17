@@ -18,7 +18,7 @@ out vec2 uv;
 
 void main(void) {
     vec4 offset = vec4(1, 1, 1, 1);
-    for (int i = 0; i < 10; i++) {
+    for (int i = 0; i < 1; i++) {
         gl_Position = gl_in[0].gl_Position + offset;
         color = v_color[0];
         uv = v_uv[0];

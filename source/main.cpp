@@ -2,14 +2,79 @@
 #include <graphics.h>
 #include <input.h>
 
-camera_t *perspective, *ortho;
+camera_t *perspective, *ortho_stencil, *ortho;
 list<mesh_renderer_t *> *renderers;
-texture_t *texture, *texture_large;
+texture_t *texture, *texture_large, *mask_texture;
+image_t *image, *image_large, *mask_image;
 shader_t *vertex_shader, *frag_shader, *geometry_shader;
 shader_program_t *shader;
 mesh_t *mesh;
 model_t *model;
-image_t *image, *image_large;
+mesh_renderer_t *mask_renderer;
+
+void create_texture(const char *path, texture_t **texture, image_t **image) {
+    *image = create_image(path);
+    *texture = create_texture(*image, get_default_texture_config());
+}
+
+material_t *create_default_material() {
+    // TODO: read this form file
+    // TODO: read this form file
+    // TODO: read this form file
+    // TODO: read this form file
+
+    uniform_definition_t mvp_uniform = {};
+    mvp_uniform.name = (char *) "MVP";
+    mvp_uniform.type = UNIFORM_TYPE::UNIFORM_MATRIX;
+    mvp_uniform.default_value.matrix_value = glm::mat4();
+
+    uniform_definition_t my_texture = {};
+    my_texture.name = (char *) "my_texture";
+    my_texture.type = UNIFORM_TYPE::UNIFORM_TEXTURE2D;
+    my_texture.default_value.texture_value.texture = texture;
+    my_texture.default_value.texture_value.texture_target_index = TEXTURE_0;
+
+    uniform_definition_t tint = {};
+    tint.name = (char *) "tint";
+    tint.type = UNIFORM_TYPE::UNIFORM_VEC4;
+    tint.default_value.vector4_value = glm::vec4(1, 1, 1, 1);
+
+    uniform_definition_t offset = {};
+    offset.name = (char *) "offset";
+    offset.type = UNIFORM_TYPE::UNIFORM_VEC2;
+    offset.default_value.vector2_value = glm::vec2(.5, .5);
+
+    uniform_definition_t wrap = {};
+    wrap.name = (char *) "wrap";
+    wrap.type = UNIFORM_TYPE::UNIFORM_VEC2;
+    wrap.default_value.vector2_value = glm::vec2(1, 1);
+
+    list<uniform_definition_t> *uniforms = create_list<uniform_definition_t>(5);
+    add(uniforms, mvp_uniform);
+    add(uniforms, my_texture);
+    add(uniforms, tint);
+    add(uniforms, offset);
+    add(uniforms, wrap);
+
+    material_t *material = create_material(
+            shader,
+            uniforms
+    );
+
+    return material;
+}
+
+stencil_settings_t get_normal_camera_stencil_setting() {
+    stencil_settings_t settings;
+    settings.reference_value = 1;
+    settings.stencil_func_mask = 0xFF;
+    settings.compare_func = COMPARE_EQUAL;
+    settings.stencil_pass_depth_fail = STENCIL_OP_KEEP;
+    settings.stencil_fail = STENCIL_OP_KEEP;
+    settings.stencil_depth_pass = STENCIL_OP_REPLACE;
+    settings.stencil_mask = 0x00;
+    return settings;
+}
 
 void setup() {
     char *vertex_shader_code = read_file_text("data/shaders/default_vertex_shader.glsl");
@@ -27,12 +92,9 @@ void setup() {
     // Needs to set this so that stb_image loads the way opengl expects it!
     stbi_set_flip_vertically_on_load(true);
 
-    image = create_image("data/textures/the_witness_small.png");
-    image_large = create_image("data/textures/the_witness.png");
-
-    texture_config_t config = get_default_texture_config();
-    texture = create_texture(image, config);
-    texture_large = create_texture(image_large, config);
+    create_texture("data/textures/the_witness.png", &texture_large, &image_large);
+    create_texture("data/textures/the_witness_small.png", &texture, &image);
+    create_texture("data/textures/mask.png", &mask_texture, &mask_image);
 
     model = create_model("data/models/plane.cm");
     mesh = create_mesh(model);
@@ -49,60 +111,41 @@ void setup() {
             VERTEX_NORMAL_ATTRIBUTE_NAME
     );
 
+    material_t *mask_material = create_default_material();
+    set_uniform_texture(mask_material, "my_texture", mask_texture);
+    mask_renderer = create_mesh_renderer(mask_material, mesh);
+    mask_renderer->layer_mask = 1 << 2;
+    //mask_renderer->should_be_drawn = false;
+
     renderers = create_list<mesh_renderer_t *>(100);
     for (int j = 0; j < RENDER_QUANTITY; ++j) {
 
-        // TODO: read this form file
-        // TODO: read this form file
-        // TODO: read this form file
-        // TODO: read this form file
-
-        uniform_definition_t mvp_uniform = {};
-        mvp_uniform.name = (char *) "MVP";
-        mvp_uniform.type = UNIFORM_TYPE::UNIFORM_MATRIX;
-        mvp_uniform.default_value.matrix_value = glm::mat4();
-
-        uniform_definition_t my_texture = {};
-        my_texture.name = (char *) "my_texture";
-        my_texture.type = UNIFORM_TYPE::UNIFORM_TEXTURE2D;
-        my_texture.default_value.texture_value.texture = texture;
-        my_texture.default_value.texture_value.texture_target_index = TEXTURE_0;
-
-        uniform_definition_t tint = {};
-        tint.name = (char *) "tint";
-        tint.type = UNIFORM_TYPE::UNIFORM_VEC4;
-        tint.default_value.vector4_value = glm::vec4(1, 1, 1, 1);
-
-        uniform_definition_t offset = {};
-        offset.name = (char *) "offset";
-        offset.type = UNIFORM_TYPE::UNIFORM_VEC2;
-        offset.default_value.vector2_value = glm::vec2(.5, .5);
-
-        uniform_definition_t wrap = {};
-        wrap.name = (char *) "wrap";
-        wrap.type = UNIFORM_TYPE::UNIFORM_VEC2;
-        wrap.default_value.vector2_value = glm::vec2(1, 1);
-
-        list<uniform_definition_t> *uniforms = create_list<uniform_definition_t>(5);
-        add(uniforms, mvp_uniform);
-        add(uniforms, my_texture);
-        add(uniforms, tint);
-        add(uniforms, offset);
-        add(uniforms, wrap);
-
-        material_t *material = create_material(
-                shader,
-                uniforms
-        );
-
-        material->cull_func = CULL_BACK;
+        material_t *material = create_default_material();
 
         mesh_renderer_t *renderer = create_mesh_renderer(material, mesh);
         add(renderers, renderer);
     }
 
+    ortho_stencil = create_ortho_camera(-1, 1, 1, -1, -100, 100);
+    ortho_stencil->clear_mode = CAMERA_CLEAR_ALL;
+    ortho_stencil->culling_mask = 1 << 2;
+    //ortho_stencil->color_mask = get_color_mask_disabled();
+    //ortho_stencil->depth_buffer_status = DEPTH_BUFFER_DISABLED; // dont write to depth buffer
+
+    // This will replace the stencil value with 1
+    // since it will REPLACE the stencil value with the reference value
+    // regardless of the comparison (COMPARE_ALWAYS_TRUE)
+    ortho_stencil->stencil_settings.compare_func = COMPARE_ALWAYS_TRUE;
+    ortho_stencil->stencil_settings.reference_value = 1;
+    ortho_stencil->stencil_settings.stencil_depth_pass = STENCIL_OP_REPLACE;
+    ortho_stencil->stencil_settings.stencil_pass_depth_fail = STENCIL_OP_REPLACE;
+    ortho_stencil->stencil_settings.stencil_fail = STENCIL_OP_REPLACE;
+
     perspective = create_perspective_camera(45.f, 0, .1f, 100.f);
+    perspective->stencil_settings = get_normal_camera_stencil_setting();
+
     ortho = create_ortho_camera(-1, 1, 1, -1, -100, 100);
+    ortho->stencil_settings = get_normal_camera_stencil_setting();
 
     //perspective->clear_mode = CAMERA_CLEAR_NONE;
     //ortho->clear_mode = CAMERA_CLEAR_NONE;
@@ -147,19 +190,21 @@ void update_renderers(camera_t *camera) {
 
         //transform->position = glm::vec3(0, 0, -1);
 
-        transform->rotation = glm::quat();
-        transform->rotation *= glm::angleAxis((float) (glfwGetTime() + i), glm::vec3(0, 0, 1));
-        transform->rotation *= glm::angleAxis((float) (glfwGetTime() + i * 2), glm::vec3(1, 0, 0));
-        transform->rotation *= glm::angleAxis((float) (glfwGetTime() + i), glm::vec3(0, 1, 0));
+        if (is_key_down(KEY_SPACE)) {
+            transform->rotation = glm::quat();
+            transform->rotation *= glm::angleAxis((float) (glfwGetTime() + i), glm::vec3(0, 0, 1));
+            transform->rotation *= glm::angleAxis((float) (glfwGetTime() + i * 2), glm::vec3(1, 0, 0));
+            transform->rotation *= glm::angleAxis((float) (glfwGetTime() + i), glm::vec3(0, 1, 0));
+        }
 
         if (is_key_down(KEY_W)) {
-            camera->entity->transform->position.z -= dt;
+            mask_renderer->entity->transform->position.y -= dt;
         } else if (is_key_down(KEY_S)) {
-            camera->entity->transform->position.z += dt;
+            mask_renderer->entity->transform->position.y += dt;
         } else if (is_key_down(KEY_A)) {
-            camera->entity->transform->position.x -= dt;
+            mask_renderer->entity->transform->position.x -= dt;
         } else if (is_key_down(KEY_D)) {
-            camera->entity->transform->position.x += dt;
+            mask_renderer->entity->transform->position.x += dt;
         }
 
         if (is_key_down(KEY_KP_8)) {
@@ -182,8 +227,6 @@ void update_renderers(camera_t *camera) {
             look_at(transform, world_up());
         } else if (is_key_down(KEY_DOWN)) {
             look_at(transform, world_down());
-        } else if (is_key_pressed(KEY_R)) {
-            look_at(transform, world_forward());
         }
 
         if (is_key_pressed(KEY_L)) {
@@ -196,6 +239,8 @@ void update_renderers(camera_t *camera) {
             material->cull_func = CULL_FRONT;
         } else if (is_key_pressed(KEY_P)) {
             material->cull_func = CULL_BACK;
+        } else if (is_key_pressed(KEY_R)) {
+            material->cull_func = CULL_DISABLED;
         }
 
         if (is_key_pressed(KEY_LEFT_BRACKET)) {
@@ -237,16 +282,16 @@ void update_renderers(camera_t *camera) {
     if (pressed)
         set_color_mask(mask);
 
-    if (is_key_pressed(KEY_SPACE)) {
-        set_depth_mask(DEPTH_MASK_DISABLED);
+    if (is_key_pressed(KEY_J)) {
+        set_depth_test_status(DEPTH_BUFFER_DISABLED);
     } else if (is_key_pressed(KEY_H)) {
-        set_depth_mask(DEPTH_MASK_ENABLE);
+        set_depth_test_status(DEPTH_BUFFER_ENABLED);
     }
 
     if (is_key_pressed(KEY_BACKSPACE)) {
         MESSAGE("CLEAR ALL");
         set_clear_color(black());
-        clear_view_port(get_screen_view_port(), CLEAR_ALL);
+        clear_view_port(get_screen_view_port(), CLEAR_COLOR_AND_DEPTH);
     }
 }
 

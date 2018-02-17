@@ -42,3 +42,17 @@ OpenGL always wants vertices to be supplied counter cock wise.
 Always bind the vertex indice buffer when drawing (on update_callback)
 
 glEnableVertexAttribArray receives the INDEX of the VBO, not the handle!!!
+
+stencil func:
+
+    int current_stencil_value = 1;
+        int test_stencil_value = 2;
+        int mask = 0xFF;
+
+        int delta = (test_stencil_value & mask) - (current_stencil_value & mask);
+        if (GL_EQUAL && delta == 0)
+            //success
+        if (GL_LESS && delta < 0)
+            // succ
+        if (GL_GREATER && delta < 0)
+            // fail

@@ -112,7 +112,7 @@ void draw() {
     color_rgba_t clear_color = white();
 
     set_clear_color(clear_color);
-    clear_view_port(screen_vp, CLEAR_ALL);
+    clear_view_port(screen_vp, CLEAR_COLOR_AND_DEPTH);
 }
 
 void release() {

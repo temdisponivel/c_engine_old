@@ -39,10 +39,10 @@
 typedef glm::vec4 color_rgba_t;
 // TODO: maybe we need a rgba 255 color type?
 
-enum DEPTH_MASK {
-    DEPTH_MASK_ENABLE = GL_TRUE,
-    DEPTH_MASK_DISABLED = GL_FALSE,
-    DEPTH_MASK_DEFAULT = DEPTH_MASK_ENABLE,
+enum DEPTH_BUFFER_STATUS {
+    DEPTH_BUFFER_ENABLED = GL_TRUE,
+    DEPTH_BUFFER_DISABLED = GL_FALSE,
+    DEPTH_TEST_DEFAULT = DEPTH_BUFFER_ENABLED,
 };
 
 typedef struct model {
@@ -91,8 +91,8 @@ enum COMPARE_FUNCTIONS {
     COMPARE_GREATER = GL_GREATER,
     COMPARE_GREATER_OR_EQUAL = GL_GEQUAL,
     COMPARE_DIFFERENT = GL_NOTEQUAL,
-    COMPARE_ALWAYS = GL_ALWAYS,
-    COMPARE_NEVER = GL_NEVER,
+    COMPARE_ALWAYS_TRUE = GL_ALWAYS,
+    COMPARE_NEVER_TRUE = GL_NEVER,
     COMPARE_DEFAULT = COMPARE_DISABLED,
 };
 
@@ -263,6 +263,8 @@ typedef struct mesh_renderer {
     material_t *material;
     mesh_t *mesh;
     bool should_be_drawn;
+
+    uint layer_mask; //TODO: improve this
 } mesh_renderer_t;
 
 typedef struct color_mask {
@@ -288,18 +290,24 @@ typedef struct stencil_settings {
     int reference_value;
     uint stencil_func_mask;
 
-    STENCIL_OP_ACTION stencil_fail_action;
-    STENCIL_OP_ACTION depth_fail_stencil_pass_action;
+    STENCIL_OP_ACTION stencil_fail;
+    STENCIL_OP_ACTION stencil_pass_depth_fail;
     STENCIL_OP_ACTION stencil_depth_pass;
 
     uint stencil_mask;
 } stencil_settings_t;
 
+typedef struct depth_settings {
+    COMPARE_FUNCTIONS compare_func;
+    DEPTH_BUFFER_STATUS mask;
+} depth_settings_t;
+
 enum CLEAR_MASK {
     CLEAR_COLOR = GL_COLOR_BUFFER_BIT,
     CLEAR_DEPTH = GL_DEPTH_BUFFER_BIT,
     CLEAR_STENCIL = GL_STENCIL_BUFFER_BIT,
-    CLEAR_ALL = CLEAR_COLOR | CLEAR_DEPTH | CLEAR_STENCIL,
+    CLEAR_COLOR_AND_DEPTH = CLEAR_COLOR | CLEAR_DEPTH,
+    CLEAR_ALL = CLEAR_COLOR_AND_DEPTH | CLEAR_STENCIL,
 };
 
 enum CAMERA_TYPE {
@@ -332,9 +340,10 @@ enum CAMERA_CLEAR_MODE {
     CAMERA_CLEAR_COLOR,
     CAMERA_CLEAR_DEPTH,
     CAMERA_CLEAR_STENCIL,
-    CAMERA_CLEAR_ALL,
+    CAMERA_CLEAR_COLOR_DEPTH,
+    CAMERA_CLEAR_ALL, // NOTE: maybe this should be the default?!
     CAMERA_CLEAR_NONE,
-    CAMERA_CLEAR_DEFAULT = CAMERA_CLEAR_ALL,
+    CAMERA_CLEAR_DEFAULT = CAMERA_CLEAR_COLOR_DEPTH,
 };
 
 typedef struct camera {
@@ -346,7 +355,7 @@ typedef struct camera {
     CAMERA_TYPE type;
     CAMERA_CLEAR_MODE clear_mode;
 
-    DEPTH_MASK depth_mask;
+    DEPTH_BUFFER_STATUS depth_buffer_status;
     color_mask_t color_mask;
     stencil_settings_t stencil_settings;
 
@@ -359,13 +368,16 @@ typedef struct camera {
         orthogonal_camera_t ortho;
         perspective_camera_t perspective;
     };
+
+    bool enabled;
+
+    uint culling_mask;
 } camera_t;
 
 typedef struct graphics_state {
-    COMPARE_FUNCTIONS current_depth_func;
     CULL_FUNCTIONS current_cull_func;
 
-    DEPTH_MASK depth_mask;
+    depth_settings_t current_depth_settings;
     color_mask_t color_mask;
     stencil_settings_t current_stencil_config;
 
@@ -394,11 +406,7 @@ void release_graphics();
 
 graphics_state_t get_graphics_state();
 
-void set_depth_func(COMPARE_FUNCTIONS func);
-
 void set_cull_func(CULL_FUNCTIONS func);
-
-void set_stencil_settings(stencil_settings_t settings);
 
 void set_vbo_enable_state(mesh_t *mesh, bool state);
 
@@ -496,7 +504,7 @@ void destroy_mesh_renderer(mesh_renderer_t *renderer);
 
 void prepare_to_draw(mesh_renderer_t *renderer);
 
-void prepare_material_to_draw(material_t *material);
+void use_material(material_t *material);
 
 void draw_renderer(mesh_renderer_t *renderer);
 
@@ -540,8 +548,22 @@ void clear_view_port(view_port_t view_port, CLEAR_MASK clear_mask);
 
 void set_clear_color(color_rgba_t color);
 
-void set_depth_mask(DEPTH_MASK depth_mask);
+void set_depth_test_status(DEPTH_BUFFER_STATUS status);
+
+void set_depth_func(COMPARE_FUNCTIONS functions);
+
+void set_depth_settings(depth_settings_t settings);
 
 void set_color_mask(color_mask_t mask);
+
+color_mask_t get_color_mask_disabled();
+
+void set_stencil_func(COMPARE_FUNCTIONS func, int ref_value, uint func_mask);
+
+void set_stencil_op(STENCIL_OP_ACTION fail, STENCIL_OP_ACTION depth_fail_stencil_pass, STENCIL_OP_ACTION all_pass);
+
+void set_stencil_mask(uint stencil_mask);
+
+void set_stencil_settings(stencil_settings_t settings);
 
 #endif //CYNICAL_ENGINE_CPP_GRAPHICS_H

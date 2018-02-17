@@ -941,10 +941,10 @@ stencil_settings_t get_default_stencil_settings() {
     stencil_settings_t stencil_settings;
 
     stencil_settings.compare_func = COMPARE_DISABLED;
-    stencil_settings.stencil_func_mask = 0xFF;
+    stencil_settings.stencil_mask = 0xFF;
 
-    stencil_settings.stencil_fail_action = STENCIL_OP_KEEP;
-    stencil_settings.depth_fail_stencil_pass_action = STENCIL_OP_KEEP;
+    stencil_settings.stencil_fail = STENCIL_OP_KEEP;
+    stencil_settings.stencil_pass_depth_fail = STENCIL_OP_KEEP;
     stencil_settings.stencil_depth_pass = STENCIL_OP_REPLACE;
 
     stencil_settings.reference_value = 1;
@@ -957,8 +957,11 @@ CULL_FUNCTIONS get_default_cull_func() {
     return CULL_DISABLED;
 }
 
-COMPARE_FUNCTIONS get_default_depth_func() {
-    return COMPARE_DISABLED;
+depth_settings_t get_default_depth_settings() {
+    depth_settings_t settings;
+    settings.compare_func = COMPARE_LESS;
+    settings.mask = DEPTH_BUFFER_DISABLED;
+    return settings;
 }
 
 void prepare_graphics() {
@@ -968,17 +971,15 @@ void prepare_graphics() {
     gl_state->cameras = create_list<camera_t *>(1);
 
     gl_state->current_cull_func = get_default_cull_func();
-    gl_state->current_depth_func = get_default_depth_func();
 
     gl_state->current_view_port = get_screen_view_port();
 
     gl_state->color_mask = get_default_color_mask();
 
-    gl_state->depth_mask = DEPTH_MASK_DEFAULT;
-
     gl_state->clear_color = black();
 
     gl_state->current_stencil_config = get_default_stencil_settings();
+    gl_state->current_depth_settings = get_default_depth_settings();
 }
 
 void release_graphics() {
@@ -997,56 +998,6 @@ graphics_state_t get_graphics_state() {
     return *gl_state;
 }
 
-void set_depth_func(COMPARE_FUNCTIONS func) {
-    if (gl_state->current_depth_func != func) {
-        if (func == COMPARE_DISABLED) {
-            glDisable(GL_DEPTH_TEST);
-        } else {
-            if (gl_state->current_depth_func == COMPARE_DISABLED)
-                glEnable(GL_DEPTH_TEST);
-
-            glDepthFunc(func);
-        }
-
-        gl_state->current_depth_func = func;
-    }
-}
-
-void set_stencil_settings(stencil_settings_t settings) {
-    stencil_settings_t current_settings = gl_state->current_stencil_config;
-
-    if (current_settings.compare_func != settings.compare_func ||
-        current_settings.reference_value != settings.reference_value ||
-        current_settings.stencil_func_mask != settings.stencil_func_mask
-    ) {
-        if (settings.compare_func == COMPARE_DISABLED) {
-            glDisable(GL_STENCIL_TEST);
-        } else {
-            if (current_settings.compare_func == COMPARE_DISABLED)
-                glEnable(GL_STENCIL_TEST);
-
-            glStencilFunc(settings.compare_func, settings.reference_value, settings.stencil_func_mask);
-        }
-    }
-
-    if (current_settings.stencil_fail_action != settings.stencil_fail_action ||
-        current_settings.depth_fail_stencil_pass_action != settings.depth_fail_stencil_pass_action ||
-        current_settings.stencil_depth_pass != settings.stencil_depth_pass
-    ) {
-        glStencilOp(
-                settings.stencil_fail_action,
-                settings.depth_fail_stencil_pass_action,
-                settings.depth_fail_stencil_pass_action
-        );
-    }
-
-    if (current_settings.stencil_mask != settings.stencil_mask) {
-        glStencilMask(settings.stencil_mask);
-    }
-
-    gl_state->current_stencil_config = settings;
-}
-
 void set_cull_func(CULL_FUNCTIONS func) {
     if (gl_state->current_cull_func != func) {
         if (func == CULL_DISABLED) {
@@ -1058,11 +1009,13 @@ void set_cull_func(CULL_FUNCTIONS func) {
             glCullFace(func);
         }
 
+        CHECK_GL_ERROR();
+
         gl_state->current_cull_func = func;
     }
 }
 
-void prepare_material_to_draw(material_t *material) {
+void use_material(material_t *material) {
     ENSURE(material != null);
 
     if (gl_state->current_shader_program != material->shader->handle) {
@@ -1094,7 +1047,7 @@ void prepare_to_draw(mesh_renderer_t *renderer) {
     glm::mat4 mvp = gl_state->current_camera->_matrix * renderer->entity->transform->_matrix;
     set_uniform_matrix(material, "MVP", mvp);
 
-    prepare_material_to_draw(material);
+    use_material(material);
 }
 
 void draw_renderer(mesh_renderer_t *renderer) {
@@ -1165,9 +1118,11 @@ void draw_scene() {
     uint length = cameras->length;
     for (int i = 0; i < length; ++i) {
         camera_t *camera = cameras->items[i];
-        use_camera(camera);
 
-        draw_all_renderers();
+        if (camera->enabled) {
+            use_camera(camera);
+            draw_all_renderers();
+        }
     }
 }
 
@@ -1178,8 +1133,18 @@ void draw_all_renderers() {
 void draw_renderers(list<mesh_renderer_t *> *renderers) {
     ENSURE(gl_state->current_camera != null);
 
+    camera_t *camera = gl_state->current_camera;
     for (int i = 0; i < renderers->length; ++i) {
-        draw_renderer(renderers->items[i]);
+        mesh_renderer_t *renderer = renderers->items[i];
+        if (renderer->should_be_drawn) {
+
+            // TODO: improve this!!
+            // TODO: improve this!!
+            // TODO: improve this!!
+            // TODO: improve this!!
+            if ((camera->culling_mask & renderer->layer_mask) == renderer->layer_mask)
+                draw_renderer(renderer);
+        }
     }
 }
 
@@ -1190,6 +1155,7 @@ mesh_renderer_t *create_mesh_renderer(material_t *material, mesh_t *mesh) {
     renderer->mesh = mesh;
     renderer->entity = create_entity(BUILT_IN_ENTITIES::MESH_RENDERER, renderer);
     renderer->should_be_drawn = true;
+    renderer->layer_mask = 1 << 0;
 
     add(gl_state->rendereres, renderer);
 
@@ -1208,12 +1174,16 @@ camera_t *create_camera() {
     camera->entity = create_entity(BUILT_IN_ENTITIES::CAMERA, camera);
     camera->_matrix = glm::mat4();
     camera->clear_mode = CAMERA_CLEAR_DEFAULT;
-    camera->view_port.size = get_screen_size();
+    camera->view_port = get_screen_view_port();
     camera->full_screen = true;
+    camera->clear_color = black();
 
-    camera->depth_mask = DEPTH_MASK_DEFAULT;
+    camera->depth_buffer_status = DEPTH_TEST_DEFAULT;
     camera->color_mask = get_default_color_mask();
     camera->stencil_settings = get_default_stencil_settings();
+
+    camera->enabled = true;
+    camera->culling_mask = 0xFF;
 
     add(gl_state->cameras, camera);
 
@@ -1307,13 +1277,15 @@ void use_camera(camera_t *camera) {
 
     set_view_port(camera->view_port);
     set_clear_color(camera->clear_color);
+
+    set_color_mask(camera->color_mask);
     set_stencil_settings(camera->stencil_settings);
-    set_depth_mask(camera->depth_mask);
+    set_depth_test_status(camera->depth_buffer_status);
 
     update_camera_matrix(gl_state->current_camera);
 
     if (camera->clear_mode != CAMERA_CLEAR_NONE) {
-        CLEAR_MASK clear_mask = CLEAR_ALL;
+        CLEAR_MASK clear_mask = CLEAR_COLOR_AND_DEPTH;
         switch (camera->clear_mode) {
             case CAMERA_CLEAR_COLOR:
                 clear_mask = CLEAR_COLOR;
@@ -1323,6 +1295,9 @@ void use_camera(camera_t *camera) {
                 break;
             case CAMERA_CLEAR_STENCIL:
                 clear_mask = CLEAR_STENCIL;
+                break;
+            case CAMERA_CLEAR_COLOR_DEPTH:
+                clear_mask = CLEAR_COLOR_AND_DEPTH;
                 break;
             case CAMERA_CLEAR_ALL:
                 clear_mask = CLEAR_ALL;
@@ -1387,11 +1362,38 @@ void set_clear_color(color_rgba_t color) {
     }
 }
 
-void set_depth_mask(DEPTH_MASK depth_mask) {
-    if (gl_state->depth_mask != depth_mask) {
-        gl_state->depth_mask = depth_mask;
-        glDepthMask(depth_mask);
+void set_depth_test_status(DEPTH_BUFFER_STATUS status) {
+    depth_settings_t current = gl_state->current_depth_settings;
+    current.mask = status;
+    set_depth_settings(current);
+}
+
+void set_depth_func(COMPARE_FUNCTIONS func) {
+    depth_settings_t current = gl_state->current_depth_settings;
+    current.compare_func = func;
+    set_depth_settings(current);
+}
+
+void set_depth_settings(depth_settings_t settings) {
+    depth_settings_t current_settings = gl_state->current_depth_settings;
+    if (current_settings.mask != settings.mask) {
+        glDepthMask(settings.mask);
     }
+
+    if (current_settings.compare_func != settings.compare_func) {
+        if (settings.compare_func == COMPARE_DISABLED)
+            glDisable(GL_DEPTH_TEST);
+        else {
+            if (current_settings.compare_func == COMPARE_DISABLED)
+                glEnable(GL_DEPTH_TEST);
+
+            glDepthFunc(settings.compare_func);
+        }
+    }
+
+    CHECK_GL_ERROR();
+
+    gl_state->current_depth_settings = settings;
 }
 
 void set_color_mask(color_mask_t mask) {
@@ -1400,8 +1402,86 @@ void set_color_mask(color_mask_t mask) {
         mask.green != current.green ||
         mask.blue != current.blue ||
         mask.alpha != current.alpha
-    ) {
+            ) {
         glColorMask((GLboolean) mask.red, (GLboolean) mask.green, (GLboolean) mask.blue, (GLboolean) mask.alpha);
         gl_state->color_mask = mask;
     }
+}
+
+color_mask_t get_color_mask_disabled() {
+    color_mask_t mask;
+    mask.red = false;
+    mask.green = false;
+    mask.blue = false;
+    mask.alpha = false;
+    return mask;
+}
+
+
+void set_stencil_func(COMPARE_FUNCTIONS func, int ref_value, uint func_mask) {
+    stencil_settings_t current_settings = gl_state->current_stencil_config;
+    current_settings.compare_func = func;
+    current_settings.reference_value = ref_value;
+    current_settings.stencil_func_mask = func_mask;
+    set_stencil_settings(current_settings);
+}
+
+void set_stencil_op(STENCIL_OP_ACTION fail, STENCIL_OP_ACTION depth_fail_stencil_pass, STENCIL_OP_ACTION all_pass) {
+    stencil_settings_t settings = gl_state->current_stencil_config;
+    settings.stencil_fail = fail;
+    settings.stencil_pass_depth_fail = depth_fail_stencil_pass;
+    settings.stencil_pass_depth_fail = all_pass;
+    set_stencil_settings(settings);
+}
+
+void set_stencil_mask(uint stencil_mask) {
+    stencil_settings_t settings = gl_state->current_stencil_config;
+    settings.stencil_mask = stencil_mask;
+    set_stencil_settings(settings);
+}
+
+void set_stencil_settings(stencil_settings_t settings) {
+    stencil_settings_t current_settings = gl_state->current_stencil_config;
+
+    if (current_settings.compare_func != settings.compare_func ||
+        current_settings.reference_value != settings.reference_value ||
+        current_settings.stencil_func_mask != settings.stencil_func_mask
+    ) {
+        if (settings.compare_func == COMPARE_DISABLED) {
+            glDisable(GL_STENCIL_TEST);
+            CHECK_GL_ERROR();
+        } else {
+            if (current_settings.compare_func == COMPARE_DISABLED) {
+                glEnable(GL_STENCIL_TEST);
+                CHECK_GL_ERROR();
+            }
+
+            glStencilFunc(settings.compare_func, settings.reference_value, settings.stencil_func_mask);
+
+            CHECK_GL_ERROR();
+        }
+    }
+
+    if (current_settings.stencil_fail != settings.stencil_fail ||
+        current_settings.stencil_pass_depth_fail != settings.stencil_pass_depth_fail ||
+        current_settings.stencil_depth_pass != settings.stencil_depth_pass
+            ) {
+        glStencilOp(
+                settings.stencil_fail,
+                settings.stencil_pass_depth_fail,
+                settings.stencil_depth_pass
+        );
+
+        CHECK_GL_ERROR();
+    }
+
+    if (current_settings.stencil_mask != settings.stencil_mask) {
+        glStencilMask(settings.stencil_mask);
+
+        CHECK_GL_ERROR();
+    }
+
+    CHECK_GL_ERROR();
+
+    gl_state->current_stencil_config = settings;
 }
