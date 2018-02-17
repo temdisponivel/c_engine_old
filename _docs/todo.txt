@@ -1,12 +1,9 @@
-add FBO (frame buffer objects) in order to have multiple cameras drawing to multiple texture, post-processing, etc
+add sound
 
 move stencil settings to material
 
-make immediate_quad, immediate_circle, etc
-
-make a function to draw a mesh with a specific material (maybe with a specific camera too)
-
-add sound
+make it possible to rebuff mesh data to opengl
+    make immediate_quad, immediate_circle, etc
 
 revisite the relation between camera, material, buffers (color, depth, stencil), etc
 
