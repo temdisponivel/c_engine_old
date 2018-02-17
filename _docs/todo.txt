@@ -1,5 +1,3 @@
-make view_ports relative to the screen size (ranging from 0 ~ 1)
-
 add FBO (frame buffer objects) in order to have multiple cameras drawing to multiple texture, post-processing, etc
 
 move stencil settings to material
@@ -7,6 +5,8 @@ move stencil settings to material
 make immediate_quad, immediate_circle, etc
 
 make a function to draw a mesh with a specific material (maybe with a specific camera too)
+
+add sound
 
 revisite the relation between camera, material, buffers (color, depth, stencil), etc
 
@@ -17,6 +17,8 @@ cursor manipulation (set pos, image, etc)
 make sure the input system is good enough, maybe query the key states ourselfs instead of getting the callback
 
 test the layout of the input (it seems to NOT be ABTN2)
+
+add transparency (blend, etc)
 
 fix all the "todo:" in code
 make cube appear in scene and rotate properly (being loaded from the obj file) ** (need to create the index buffer)
@@ -46,3 +48,5 @@ text input
 implement joystick input
 
 make functions inline
+
+fix load of RGB-only textures

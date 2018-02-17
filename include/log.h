@@ -131,6 +131,35 @@ void ERRORF(const char *format, ...);
     }\
 }\
 
+#define PRINT_FBO_STATUS(MSG, STATUS) {\
+    switch((STATUS)) {\
+        case GL_FRAMEBUFFER_UNDEFINED:\
+            ERROR(MSG "GL_FRAMEBUFFER_UNDEFINED");\
+            break;\
+        case GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT:\
+            ERROR(MSG "GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT");\
+            break;\
+        case GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT:\
+            ERROR(MSG "GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT");\
+            break;\
+        case GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER:\
+            ERROR(MSG "GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER");\
+            break;\
+        case GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER:\
+            ERROR(MSG "GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER");\
+            break;\
+        case GL_FRAMEBUFFER_UNSUPPORTED:\
+            ERROR(MSG "GL_FRAMEBUFFER_UNSUPPORTED");\
+            break;\
+        case GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE:\
+            ERROR(MSG "GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE");\
+            break;\
+        case GL_FRAMEBUFFER_INCOMPLETE_LAYER_TARGETS:\
+            ERROR(MSG "GL_FRAMEBUFFER_INCOMPLETE_LAYER_TARGETS");\
+            break;\
+    }\
+}\
+
 #define CHECK_SHADER_COMPILE_STATUS(SHADER, SOURCE_CODE) {\
     if (glIsShader(SHADER)) {\
         GLint compile_status = GL_FALSE;\
@@ -171,6 +200,13 @@ void ERRORF(const char *format, ...);
     GLenum error = glGetError();\
     if (error != GL_NO_ERROR) {\
         PRINT_GL_ERROR("Gl error: ", error);\
+    }\
+}\
+
+#define CHECK_FBO_STATUS() {\
+    uint status = glCheckFramebufferStatus(GL_FRAMEBUFFER);\
+    if (status != GL_FRAMEBUFFER_COMPLETE) {\
+        PRINT_FBO_STATUS("FBO ERROR: ", status);\
     }\
 }\
 

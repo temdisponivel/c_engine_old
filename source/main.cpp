@@ -336,12 +336,16 @@ void callback(void *payload) {
     MESSAGEF((char *) payload);
 }
 
+void setup_fbo();
+void update_fbo();
+void close_fbo();
+
 int main(void) {
     // TODO: Read this from file
     engine_params_t params;
     params.window_title = (char *) "My game!!!";
     params.window_size = glm::ivec2(1024, 768);
-    params.update_callback = &update;
+    params.update_callback = &update_fbo;
     params.gl_major_version = 4;
     params.gl_minor_version = 0;
 
@@ -350,80 +354,111 @@ int main(void) {
     call_after(5, &callback, (void *) "call_after 5 seconds\n", false);
     call_at(15, &callback_at, (void *) "call_at 15 seconds\n", false);
 
-    setup();
+    setup_fbo();
 
     loop();
 
-    close();
+    close_fbo();
 }
 
-/*
-// NOTE: OpenGL error checks have been omitted for brevity
-glGenBuffers(1, &vertex_buffer);
-glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
-glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-vertex_shader = glCreateShader(GL_VERTEX_SHADER);
-glShaderSource(vertex_shader, 1, &vertex_shader_text, NULL);
-glCompileShader(vertex_shader);
-fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
-glShaderSource(fragment_shader, 1, &fragment_shader_text, NULL);
-glCompileShader(fragment_shader);
-program = glCreateProgram();
-glAttachShader(program, vertex_shader);
-glAttachShader(program, fragment_shader);
-glLinkProgram(program);
-program = glCreateProgram();
-glAttachShader(program, vertex_shader);
-glAttachShader(program, fragment_shader);
-glLinkProgram(program);
-program = glCreateProgram();
-glAttachShader(program, vertex_shader);
-glAttachShader(program, fragment_shader);
-glLinkProgram(program);
-program = glCreateProgram();
-glAttachShader(program, vertex_shader);
-glAttachShader(program, fragment_shader);
-glLinkProgram(program);
-program = glCreateProgram();
-glAttachShader(program, vertex_shader);
-glAttachShader(program, fragment_shader);
-glLinkProgram(program);
-mvp_location = glGetUniformLocation(program, "MVP");
-vpos_location = glGetAttribLocation(program, "vPos");
-vcol_location = glGetAttribLocation(program, "vCol");
-glEnableVertexAttribArray(vpos_location);
-glVertexAttribPointer(vpos_location, 2, GL_FLOAT, GL_FALSE,
-                      sizeof(float) * 5, (void*) 0);
-glEnableVertexAttribArray(vcol_location);
-glVertexAttribPointer(vcol_location, 3, GL_FLOAT, GL_FALSE,
-                      sizeof(float) * 5, (void*) (sizeof(float) * 2));
+camera_t *fbo_camera, *normal_camera;
+mesh_renderer_t *fbo_mesh, *normal_mesh;
 
-while (!glfwWindowShouldClose(window))
-{
-    float ratio;
-    int width, height;
-    glm::mat4 m, p, v, mvp;
-    glfwGetFramebufferSize(window, &width, &height);
-    ratio = width / (float) height;
-    glViewport(0, 0, width, height);
-    glClear(GL_COLOR_BUFFER_BIT);
+void setup_fbo() {
+    char *vertex_shader_code = read_file_text("data/shaders/default_vertex_shader.glsl");
+    char *fragment_shader_code = read_file_text("data/shaders/default_fragment_shader.glsl");
+    char *geometry_shader_code = read_file_text("data/shaders/default_geometry_shader.glsl");
 
-    m = glm::mat4();
-    m = glm::rotate(m, (float) (glm::radians(30 * glfwGetTime())), glm::vec3(0, 0, 1));
-    m = glm::translate(m, glm::vec3(0, 0, -10));
+    vertex_shader = create_shader(vertex_shader_code, SHADER_TYPE::VERTEX_SHADER);
+    frag_shader = create_shader(fragment_shader_code, SHADER_TYPE::FRAGMENT_SHADER);
+    geometry_shader = create_shader(geometry_shader_code, SHADER_TYPE::GEOMETRY_SHADER);
 
-    p = glm::perspective(glm::radians(45.f), ratio, 0.1f, 100.f);
-    v = glm::lookAt(glm::vec3(), glm::vec3(0, 0, -1), glm::vec3(0, 1, 0));
+    free_file_text(vertex_shader_code);
+    free_file_text(fragment_shader_code);
+    free_file_text(geometry_shader_code);
 
-    mvp = p * v * m;
+    // Needs to set this so that stb_image loads the way opengl expects it!
+    stbi_set_flip_vertically_on_load(true);
 
-    glUseProgram(program);
-    glUniformMatrix4fv(mvp_location, 1, GL_FALSE, (GLfloat *) &mvp);
-    glDrawArrays(GL_TRIANGLES, 0, 3);
-    glfwSwapBuffers(window);
-    glfwPollEvents();
+    create_texture("data/textures/the_witness.png", &texture, &image_large);
+    create_texture("data/textures/the_witness_small.png", &texture, &image);
+    create_texture("data/textures/braid.png", &texture, &mask_image);
+
+    model = create_model("data/models/plane.cm");
+    mesh = create_mesh(model);
+
+    shader = create_shader_program(
+            *vertex_shader,
+            *frag_shader,
+            *geometry_shader,
+            VERTEX_POSITION_ATTRIBUTE_NAME,
+            VERTEX_COLOR_ATTRIBUTE_NAME,
+            VERTEX_TEXTURE_COORD_ATTRIBUTE_NAME,
+            VERTEX_NORMAL_ATTRIBUTE_NAME
+    );
+
+    fbo_camera = create_ortho_camera(-1, 1, 1, -1, -100, 100);
+    normal_camera = create_ortho_camera(-1, 1, 1, -1, -100, 100);
+    normal_camera->clear_mode = CAMERA_CLEAR_NONE;
+
+    fbo_camera->target = create_frame_buffer(get_screen_size());
+    fbo_camera->culling_mask = 1 << 2;
+    fbo_camera->clear_color = red();
+
+    normal_camera->culling_mask = 0xFF & ~(1 << 2);
+    normal_camera->clear_color = blue();
+
+    material_t *fbo_material = create_default_material();
+    fbo_mesh = create_mesh_renderer(fbo_material, mesh);
+    fbo_mesh->layer_mask = 1 << 2;
+    set_uniform_vec2(fbo_material, "offset", glm::vec2(0, 0));
+    set_uniform_vec2(fbo_material, "wrap", glm::vec2(1, 1));
+
+    material_t *normal_material = create_default_material();
+    normal_mesh = create_mesh_renderer(normal_material, mesh);
+    set_uniform_texture(normal_material, "my_texture", fbo_camera->target->color_texture);
+    set_uniform_vec2(normal_material, "offset", glm::vec2(0, 0));
+    set_uniform_vec2(normal_material, "wrap", glm::vec2(1, 1));
 }
-glfwDestroyWindow(window);
-glfwTerminate();
-exit(EXIT_SUCCESS);
-}*/
+
+void update_fbo() {
+    float dt = get_dt();
+    if (is_key_down(KEY_W)) {
+        normal_mesh->entity->transform->position.y -= dt;
+    } else if (is_key_down(KEY_S)) {
+        normal_mesh->entity->transform->position.y += dt;
+    } else if (is_key_down(KEY_A)) {
+        normal_mesh->entity->transform->position.x -= dt;
+    } else if (is_key_down(KEY_D)) {
+        normal_mesh->entity->transform->position.x += dt;
+    }
+
+    if (is_key_down(KEY_UP)) {
+        fbo_mesh->entity->transform->position.y -= dt;
+    } else if (is_key_down(KEY_DOWN)) {
+        fbo_mesh->entity->transform->position.y += dt;
+    } else if (is_key_down(KEY_RIGHT)) {
+        fbo_mesh->entity->transform->position.x -= dt;
+    } else if (is_key_down(KEY_LEFT)) {
+        fbo_mesh->entity->transform->position.x += dt;
+    }
+
+    if (normal_mesh != null)
+        normal_mesh->entity->transform->position.z += get_mouse_delta_scroll().y;
+}
+
+void close_fbo() {
+    destroy_shader_program(shader);
+    destroy_shader(vertex_shader);
+    destroy_shader(frag_shader);
+
+    destroy_mesh_renderer(normal_mesh);
+    destroy_mesh_renderer(fbo_mesh);
+
+    destroy_model(model);
+
+    destroy_texture(texture);
+    destroy_image(image);
+
+    release();
+}

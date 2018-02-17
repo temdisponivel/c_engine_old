@@ -66,15 +66,22 @@ typedef struct mesh {
     model_t *model;
 } mesh_t;
 
-enum IMAGE_CHANNELS {
-    RGB = 3,
-    RGBA = 4,
+enum TEXTURE_FORMAT {
+    TEXTURE_RGB = GL_RGB,
+    TEXTURE_RGBA = GL_RGBA,
+    TEXTURE_DEPTH = GL_DEPTH_COMPONENT,
+    TEXTURE_STENCIL = GL_STENCIL_INDEX
+};
+
+enum TEXTURE_PIXEL_TYPE {
+    TEXTURE_UNSIGNED_BYTE = GL_UNSIGNED_BYTE,
+    TEXTURE_UNSIGNED_INT = GL_UNSIGNED_INT,
 };
 
 typedef struct image {
     void *data;
-    glm::vec2 size;
-    IMAGE_CHANNELS channels;
+    glm::vec2 resolution;
+    TEXTURE_FORMAT format;
 } image_t;
 
 enum TEXTURE_DEPTH_STENCIAL_VALUES {
@@ -302,6 +309,16 @@ typedef struct depth_settings {
     DEPTH_BUFFER_STATUS mask;
 } depth_settings_t;
 
+typedef struct frame_buffer {
+    uint handle;
+
+    texture_t *color_texture;
+    texture_t *depth_texture;
+    texture_t *stencil_texture;
+
+    glm::vec2 resolution;
+} frame_buffer_t;
+
 enum CLEAR_MASK {
     CLEAR_COLOR = GL_COLOR_BUFFER_BIT,
     CLEAR_DEPTH = GL_DEPTH_BUFFER_BIT,
@@ -372,6 +389,8 @@ typedef struct camera {
     bool enabled;
 
     uint culling_mask;
+
+    frame_buffer_t *target;
 } camera_t;
 
 typedef struct graphics_state {
@@ -389,15 +408,22 @@ typedef struct graphics_state {
     color_rgba_t clear_color;
 
     view_port_t current_view_port;
+
+    frame_buffer_t *current_frame_buffer;
 } graphics_state_t;
 
 #define DEFAULT_COMPARE_FUNC GL_LESS
 
 color_rgba_t black();
+
 color_rgba_t white();
+
 color_rgba_t red();
+
 color_rgba_t green();
+
 color_rgba_t blue();
+
 color_rgba_t transparent();
 
 void prepare_graphics();
@@ -409,6 +435,8 @@ graphics_state_t get_graphics_state();
 void set_cull_func(CULL_FUNCTIONS func);
 
 void set_vbo_enable_state(mesh_t *mesh, bool state);
+
+void get_texture_gl_formats(image_t *image, uint *internal_format, uint *format, uint *pixel_type);
 
 image_t *create_image(const char *image_file_path);
 
@@ -567,5 +595,13 @@ void set_stencil_op(STENCIL_OP_ACTION fail, STENCIL_OP_ACTION depth_fail_stencil
 void set_stencil_mask(uint stencil_mask);
 
 void set_stencil_settings(stencil_settings_t settings);
+
+void use_screen_frame_buffer();
+
+void use_frame_buffer(frame_buffer_t *frame_buffer);
+
+frame_buffer_t *create_frame_buffer(glm::vec2 resolution);
+
+void destroy_frame_buffer(frame_buffer_t *frame_buffer);
 
 #endif //CYNICAL_ENGINE_CPP_GRAPHICS_H

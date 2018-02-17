@@ -10,59 +10,101 @@
 
 #include "stb_image.h"
 
-image_t *create_image(const char *image_file_path) {
-    image_t *image;
+bool has_gl_error() {
+    GLenum error = glGetError();
+    return error != GL_NO_ERROR;
+}
 
+void get_texture_gl_formats(image_t *image, uint *internal_format, uint *format, uint *pixel_type) {
+    switch (image->format) {
+        case TEXTURE_RGB:
+            *internal_format = TEXTURE_RGB;
+            *format = TEXTURE_RGB;
+            *pixel_type = TEXTURE_UNSIGNED_BYTE;
+
+            break;
+        case TEXTURE_RGBA:
+            *internal_format = TEXTURE_RGBA;
+            *format = TEXTURE_RGBA;
+            *pixel_type = TEXTURE_UNSIGNED_BYTE;
+            break;
+        case TEXTURE_DEPTH:
+            *internal_format = GL_DEPTH_COMPONENT24;
+            *format = TEXTURE_DEPTH;
+            *pixel_type = TEXTURE_UNSIGNED_INT;
+            break;
+        case TEXTURE_STENCIL:
+            *internal_format = GL_STENCIL_INDEX8;
+            *format = TEXTURE_STENCIL;
+            *pixel_type = TEXTURE_UNSIGNED_INT;
+            break;
+    }
+}
+
+image_t *create_image_full(
+        void *data,
+        TEXTURE_FORMAT format,
+        glm::vec2 resolution
+) {
+    image_t *image = (image_t *) memalloc(sizeof(image_t));
+    image->data = data;
+    image->format = format;
+    image->resolution = resolution;
+    return image;
+}
+
+image_t *create_image(const char *image_file_path) {
     int width, height, channels;
-    stbi_uc *data = stbi_load(image_file_path, &width, &height, &channels, IMAGE_CHANNELS::RGBA);
+    stbi_uc *data = stbi_load(image_file_path, &width, &height, &channels, 4 /* TEXTURE_FORMAT::TEXTURE_RGBA */);
 
 #if DEV
     if (data == null) {
-        ERRORF(FILE_LINE, "IMAGE '%s' COULDN'T BE LOADED!", image_file_path);
+        ERRORF("IMAGE '%s' COULDN'T BE LOADED!", image_file_path);
     }
 
     if (channels < 3 || channels > 4) {
-        WARNINGF("THE IMAGE '%s' has %i channels! We only support 3 and 4.", image_file_path, channels);
+        WARNINGF("THE IMAGE '%s' has %i format! We only support 3 and 4.", image_file_path, channels);
     }
 #endif
 
-    IMAGE_CHANNELS image_channels = IMAGE_CHANNELS::RGB;
+    TEXTURE_FORMAT format = TEXTURE_FORMAT::TEXTURE_RGB;
     if (channels == 4)
-        image_channels = IMAGE_CHANNELS::RGBA;
+        format = TEXTURE_FORMAT::TEXTURE_RGBA;
 
-    image = (image_t *) memalloc(sizeof(image_t));
-    image->data = data;
-    image->channels = image_channels;
-    image->size.x = width;
-    image->size.y = height;
+    image_t *image = create_image_full(data, format, glm::vec2(width, height));
     return image;
 }
 
 void destroy_image(image_t *image) {
-    stbi_image_free(image->data);
+    // Image data is null when the image was created for a FBO
+    if (image->data != null) {
+        stbi_image_free(image->data);
+    }
+
     memfree(image);
 }
 
 texture_t *create_texture(image_t *image, texture_config_t config) {
     uint texture_handle;
 
-    GLenum image_format = GL_RGB;
-    if (image->channels == IMAGE_CHANNELS::RGBA)
-        image_format = GL_RGBA;
-
     glGenTextures(1, &texture_handle);
     glBindTexture(GL_TEXTURE_2D, texture_handle);
     CHECK_GL_ERROR();
 
+    uint internal_format;
+    uint format;
+    uint pixel_type;
+    get_texture_gl_formats(image, &internal_format, &format, &pixel_type);
+
     glTexImage2D(
             GL_TEXTURE_2D,
             0,
-            image_format,
-            (uint) image->size.x,
-            (uint) image->size.y,
+            internal_format,
+            (uint) image->resolution.x,
+            (uint) image->resolution.y,
             0,
-            image_format,
-            GL_UNSIGNED_BYTE,
+            format,
+            pixel_type,
             image->data
     );
     CHECK_GL_ERROR();
@@ -793,6 +835,8 @@ void set_uniform_matrix(material_t *material, const char *name, glm::mat4 value)
 }
 
 void set_uniform_texture(material_t *material, const char *name, texture_t *value) {
+    ENSURE(material != null);
+
     uniform_t *uniform = find_uniform_by_name(name, material);
     if (uniform != null) {
         if (uniform->type != UNIFORM_TYPE::UNIFORM_TEXTURE2D)
@@ -882,11 +926,16 @@ void buff_uniform(uniform_t *uniform) {
             break;
         case UNIFORM_TEXTURE2D:
             glActiveTexture(uniform->current_value.texture_value.texture_target_index);
-            glBindTexture(GL_TEXTURE_2D, uniform->current_value.texture_value.texture->handle);
+            uint handle = 0;
+            if (uniform->current_value.texture_value.texture != null)
+                handle = uniform->current_value.texture_value.texture->handle;
+
+            glBindTexture(GL_TEXTURE_2D, handle);
 
             // texture target index is GL_TEXTURE0, GL_TEXTURE1, GL_TEXTURE{X}
             // But the parameter must be 0, 1, {x}. So we subtract the index from the GL_TEXTURE0
             // to get only the "{x}"
+            // NOTE: this don't need to be done every frame
             glUniform1i(uniform->handle, uniform->current_value.texture_value.texture_target_index - GL_TEXTURE0);
             break;
     }
@@ -1183,7 +1232,9 @@ camera_t *create_camera() {
     camera->stencil_settings = get_default_stencil_settings();
 
     camera->enabled = true;
-    camera->culling_mask = 0xFF;
+    camera->culling_mask = 0xFFFFFFF;
+
+    camera->target = null;
 
     add(gl_state->cameras, camera);
 
@@ -1271,18 +1322,21 @@ void update_camera_matrix(camera_t *camera) {
 }
 
 void use_camera(camera_t *camera) {
+
+    ENSURE(camera != null);
+
     if (gl_state->current_camera != camera) {
         gl_state->current_camera = camera;
     }
 
+    use_frame_buffer(camera->target);
     set_view_port(camera->view_port);
     set_clear_color(camera->clear_color);
-
     set_color_mask(camera->color_mask);
+
     set_stencil_settings(camera->stencil_settings);
     set_depth_test_status(camera->depth_buffer_status);
-
-    update_camera_matrix(gl_state->current_camera);
+    update_camera_matrix(camera);
 
     if (camera->clear_mode != CAMERA_CLEAR_NONE) {
         CLEAR_MASK clear_mask = CLEAR_COLOR_AND_DEPTH;
@@ -1459,6 +1513,23 @@ void set_stencil_mask(uint stencil_mask) {
     set_stencil_settings(settings);
 }
 
+void use_screen_frame_buffer() {
+    use_frame_buffer(null);
+}
+
+void use_frame_buffer(frame_buffer_t *frame_buffer) {
+
+    if (frame_buffer != gl_state->current_frame_buffer) {
+        if (frame_buffer == null) {
+            glBindFramebuffer(GL_FRAMEBUFFER, HANDLE_NONE);
+        } else {
+            glBindFramebuffer(GL_FRAMEBUFFER, frame_buffer->handle);
+        }
+
+        CHECK_GL_ERROR();
+    }
+}
+
 void set_stencil_settings(stencil_settings_t settings) {
     stencil_settings_t current_settings = gl_state->current_stencil_config;
 
@@ -1497,10 +1568,86 @@ void set_stencil_settings(stencil_settings_t settings) {
     if (current_settings.stencil_mask != settings.stencil_mask) {
         glStencilMask(settings.stencil_mask);
 
+
         CHECK_GL_ERROR();
     }
 
     CHECK_GL_ERROR();
 
     gl_state->current_stencil_config = settings;
+}
+
+frame_buffer_t *create_frame_buffer(glm::vec2 resolution) {
+    uint handle;
+    glGenFramebuffers(1, &handle);
+    glBindFramebuffer(GL_FRAMEBUFFER, handle);
+
+    texture_config_t texture_config = get_default_texture_config();
+
+    image_t *color_image = create_image_full(null, TEXTURE_RGB, resolution);
+    texture_t *color_texture = create_texture(color_image, texture_config);
+    glFramebufferTexture2D(
+            GL_FRAMEBUFFER,
+            GL_COLOR_ATTACHMENT0, // NOTE: Maybe we need to receive this as parameter?!
+            GL_TEXTURE_2D,
+            color_texture->handle,
+            0 //mip-map level
+    );
+    CHECK_GL_ERROR();
+    CHECK_FBO_STATUS();
+
+    // NOTE: Maybe this should be done using Frame Buffers instead of textures,
+    // since the caller might not need to use them as textures?! Maybe this configurations should be parameterized
+
+    // NOTE: Maybe we should give the option to make a depth-only texture?
+    image_t *depth_image = create_image_full(null, TEXTURE_DEPTH, resolution);
+    texture_t *depth_texture = create_texture(depth_image, texture_config);
+    glFramebufferTexture2D(
+            GL_FRAMEBUFFER,
+            GL_DEPTH_ATTACHMENT, // NOTE: Maybe we need to receive this as parameter?!
+            GL_TEXTURE_2D,
+            depth_texture->handle,
+            0 //mip-map level
+    );
+    CHECK_GL_ERROR();
+    CHECK_FBO_STATUS();
+
+    /*
+
+    image_t *stencil_image = create_image_full(null, TEXTURE_STENCIL, resolution);
+    texture_t *stencil_texture = create_texture(stencil_image, texture_config);
+    glFramebufferTexture2D(
+            GL_FRAMEBUFFER,
+            GL_STENCIL_ATTACHMENT, // NOTE: Maybe we need to receive this as parameter?!
+            GL_TEXTURE_2D,
+            stencil_texture->handle,
+            0 //mip-map level
+    );
+    CHECK_GL_ERROR();
+    CHECK_FBO_STATUS();
+
+     */
+
+    glBindFramebuffer(GL_FRAMEBUFFER, HANDLE_NONE);
+
+    frame_buffer_t *frame_buffer = (frame_buffer_t *) memalloc(sizeof(frame_buffer_t));
+    frame_buffer->handle = handle;
+    frame_buffer->color_texture = color_texture;
+    frame_buffer->depth_texture = depth_texture;
+    //frame_buffer->stencil_texture = stencil_texture;
+    return frame_buffer;
+}
+
+void destroy_frame_buffer(frame_buffer_t *frame_buffer) {
+    destroy_image(frame_buffer->color_texture->image);
+    destroy_texture(frame_buffer->color_texture);
+
+    destroy_image(frame_buffer->depth_texture->image);
+    destroy_texture(frame_buffer->depth_texture);
+
+    destroy_image(frame_buffer->stencil_texture->image);
+    destroy_texture(frame_buffer->stencil_texture);
+
+    glDeleteFramebuffers(1, &frame_buffer->handle);
+    memfree(frame_buffer);
 }
