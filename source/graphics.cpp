@@ -1094,6 +1094,13 @@ void prepare_to_draw(mesh_renderer_t *renderer) {
     use_material(material);
 }
 
+void draw_renderer_with_material(mesh_renderer_t *renderer, material_t *material) {
+    material_t *old_material = renderer->material;
+    renderer->material = material;
+    draw_renderer(renderer);
+    renderer->material = old_material;
+}
+
 void draw_renderer(mesh_renderer_t *renderer) {
     prepare_to_draw(renderer);
 

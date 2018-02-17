@@ -363,6 +363,7 @@ int main(void) {
 
 camera_t *fbo_camera, *normal_camera;
 mesh_renderer_t *fbo_mesh, *normal_mesh;
+material_t *normal_material;
 
 void setup_fbo() {
     char *vertex_shader_code = read_file_text("data/shaders/default_vertex_shader.glsl");
@@ -415,11 +416,13 @@ void setup_fbo() {
     set_uniform_vec2(fbo_material, "wrap", glm::vec2(1, 1));
     fbo_material->depth_func = COMPARE_ALWAYS_TRUE;
 
-    material_t *normal_material = create_default_material();
-    normal_mesh = create_mesh_renderer(normal_material, mesh);
-    set_uniform_texture(normal_material, "my_texture", fbo_camera->target->depth_texture);
+    normal_material = create_default_material();
+    normal_mesh = create_mesh_renderer(fbo_material, mesh);
+    set_uniform_texture(normal_material, "my_texture", fbo_camera->target->color_texture);
     set_uniform_vec2(normal_material, "offset", glm::vec2(0, 0));
     set_uniform_vec2(normal_material, "wrap", glm::vec2(1, 1));
+
+    normal_mesh->should_be_drawn = false;
 }
 
 void update_fbo() {
@@ -442,6 +445,14 @@ void update_fbo() {
         fbo_mesh->entity->transform->position.x -= dt;
     } else if (is_key_down(KEY_LEFT)) {
         fbo_mesh->entity->transform->position.x += dt;
+    }
+
+    if (is_key_down(KEY_SPACE)) {
+        draw_renderer_with_material(normal_mesh, normal_material);
+    }
+
+    if (is_key_pressed(KEY_T)) {
+        normal_mesh->should_be_drawn = !normal_mesh->should_be_drawn;
     }
 
     if (normal_mesh != null)

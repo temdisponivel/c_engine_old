@@ -527,6 +527,8 @@ void prepare_to_draw(mesh_renderer_t *renderer);
 
 void use_material(material_t *material);
 
+void draw_renderer_with_material(mesh_renderer_t *renderer, material_t *material);
+
 void draw_renderer(mesh_renderer_t *renderer);
 
 void draw_scene();
