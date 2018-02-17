@@ -6,6 +6,7 @@
 #define CYNICAL_ENGINE_CPP_CORE_H
 
 #include "engine.h"
+#include "time.h"
 
 typedef void (*engine_callback_func)();
 
@@ -20,8 +21,6 @@ typedef struct engine_state {
     bool break_game_loop;
 
     engine_callback_func update_callback;
-
-    float delta_time;
 } engine_state_t;
 
 enum ENGINE_PREPARE_RESULT {

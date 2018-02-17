@@ -65,6 +65,7 @@ ENGINE_PREPARE_RESULT prepare(engine_params_t params) {
 
     engine_state->window = window;
 
+    prepare_time();
     prepare_graphics();
     prepare_input(glfw_window);
 
@@ -72,12 +73,9 @@ ENGINE_PREPARE_RESULT prepare(engine_params_t params) {
 }
 
 void loop() {
-    float start = 0;
-    float end = 0;
-
     while (!engine_state->break_game_loop) {
-        engine_state->delta_time = end - start;
-        start = (float) glfwGetTime();
+
+        time_start_frame();
 
         update_input();
 
@@ -87,7 +85,7 @@ void loop() {
 
         draw();
 
-        end = (float) glfwGetTime();
+        time_end_frame();
     }
 }
 
@@ -126,10 +124,6 @@ void release() {
 
 void close_game() {
     engine_state->break_game_loop = true;
-}
-
-float get_dt() {
-    return engine_state->delta_time;
 }
 
 window_t *get_window() {

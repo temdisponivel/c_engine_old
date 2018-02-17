@@ -42,3 +42,5 @@ also refactor the stuff on graphics (like the list of all mesh renderers that wi
 text input
 
 implement joystick input
+
+make functions inline

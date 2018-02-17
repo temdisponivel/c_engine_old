@@ -330,6 +330,14 @@ void close() {
     release();
 }
 
+void callback_at(void *payload) {
+    MESSAGEF((char *) payload);
+}
+
+void callback(void *payload) {
+    MESSAGEF((char *) payload);
+}
+
 int main(void) {
     // TODO: Read this from file
     engine_params_t params;
@@ -340,6 +348,9 @@ int main(void) {
     params.gl_minor_version = 0;
 
     prepare(params);
+
+    call_after(5, &callback, (void *) "call_after 5 seconds\n", false);
+    call_at(15, &callback_at, (void *) "call_at 15 seconds\n", false);
 
     setup();
 
