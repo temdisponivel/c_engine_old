@@ -1314,18 +1314,34 @@ void update_cameras_view_port_to_screen_size() {
     for (int i = 0; i < length; ++i) {
         camera_t *camera = cameras->items[i];
         if (camera->full_screen) {
-            camera->view_port.size = get_screen_size();
+            camera->view_port.size = glm::vec2(1, 1);
         }
     }
 }
 
+view_port_t get_view_port_absolute(view_port_t relative_view_port) {
+    glm::vec2 screen_size = get_screen_size();
+
+    glm::vec2 view_port_size = glm::vec2(
+            relative_view_port.size.x * screen_size.x,
+            relative_view_port.size.y * screen_size.y
+    );
+
+    glm::vec2 view_port_position = glm::vec2(
+            relative_view_port.position.x * screen_size.x,
+            relative_view_port.position.y * screen_size.y
+    );
+
+    view_port_t absolute_view_port;
+    absolute_view_port.size = view_port_size;
+    absolute_view_port.position = view_port_position;
+    return absolute_view_port;
+}
+
 view_port_t get_screen_view_port() {
     view_port_t screen_view_port;
-    glm::ivec2 screen_pos = glm::ivec2(0, 0);
-    glm::ivec2 screen_size = get_screen_size();
-
-    screen_view_port.position = screen_pos;
-    screen_view_port.size = screen_size;
+    screen_view_port.position = glm::vec2(0, 0);
+    screen_view_port.size = glm::vec2(1, 1);
 
     return screen_view_port;
 }
@@ -1335,7 +1351,9 @@ void set_view_port(view_port_t view_port) {
         view_port.position != gl_state->current_view_port.position
             ) {
         gl_state->current_view_port = view_port;
-        glViewport(view_port.position.x, view_port.position.y, view_port.size.x, view_port.size.y);
+
+        view_port_t absolute = get_view_port_absolute(view_port);
+        glViewport(absolute.position.x, absolute.position.y, absolute.size.x, absolute.size.y);
     }
 }
 
@@ -1344,8 +1362,9 @@ void clear_current_view_port(CLEAR_MASK clear_mask) {
 }
 
 void clear_view_port(view_port_t view_port, CLEAR_MASK clear_mask) {
-    glm::ivec2 pos = view_port.position;
-    glm::ivec2 size = view_port.size;
+    view_port_t absolute = get_view_port_absolute(view_port);
+    glm::ivec2 pos = absolute .position;
+    glm::ivec2 size = absolute .size;
 
     // TODO: maybe validate if the viewport is fullscreen before enabling scissors test?!
     // Only clear the view-port, not the whole screen

@@ -1,12 +1,14 @@
-create a time handler that will have delta time, time scale, etc
+make view_ports relative to the screen size (ranging from 0 ~ 1)
 
 add FBO (frame buffer objects) in order to have multiple cameras drawing to multiple texture, post-processing, etc
 
 move stencil settings to material
 
-revisite the relation between camera, material, buffers (color, depth, stencil), etc
+make immediate_quad, immediate_circle, etc
 
-make view_ports relative to the screen size (ranging from 0 ~ 1)
+make a function to draw a mesh with a specific material (maybe with a specific camera too)
+
+revisite the relation between camera, material, buffers (color, depth, stencil), etc
 
 finish implementing all window functions
 

@@ -332,8 +332,8 @@ typedef struct orthogonal_camera {
 } orthogonal_camera_t;
 
 typedef struct view_port {
-    glm::ivec2 size;
-    glm::ivec2 position;
+    glm::vec2 size;
+    glm::vec2 position;
 } view_port_t;
 
 enum CAMERA_CLEAR_MODE {
@@ -537,6 +537,8 @@ void update_camera_matrix(camera_t *camera);
 void use_camera(camera_t *camera);
 
 void update_cameras_view_port_to_screen_size();
+
+view_port_t get_view_port_absolute(view_port_t relative_view_port);
 
 view_port_t get_screen_view_port();
 

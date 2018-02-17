@@ -68,7 +68,7 @@ stencil_settings_t get_normal_camera_stencil_setting() {
     stencil_settings_t settings;
     settings.reference_value = 1;
     settings.stencil_func_mask = 0xFF;
-    settings.compare_func = COMPARE_EQUAL;
+    settings.compare_func = COMPARE_ALWAYS_TRUE;
     settings.stencil_pass_depth_fail = STENCIL_OP_KEEP;
     settings.stencil_fail = STENCIL_OP_KEEP;
     settings.stencil_depth_pass = STENCIL_OP_REPLACE;
@@ -126,6 +126,7 @@ void setup() {
         add(renderers, renderer);
     }
 
+    /*
     ortho_stencil = create_ortho_camera(-1, 1, 1, -1, -100, 100);
     ortho_stencil->clear_mode = CAMERA_CLEAR_ALL;
     ortho_stencil->culling_mask = 1 << 2;
@@ -141,27 +142,24 @@ void setup() {
     ortho_stencil->stencil_settings.stencil_pass_depth_fail = STENCIL_OP_REPLACE;
     ortho_stencil->stencil_settings.stencil_fail = STENCIL_OP_REPLACE;
 
+     */
+
     perspective = create_perspective_camera(45.f, 0, .1f, 100.f);
-    perspective->stencil_settings = get_normal_camera_stencil_setting();
-    perspective->clear_mode = CAMERA_CLEAR_NONE;
-    perspective->culling_mask = ((0xFF) & ~(1 << 2));
+    perspective->clear_mode = CAMERA_CLEAR_COLOR_DEPTH;
+    //perspective->culling_mask = ((0xFF) & ~(1 << 2));
 
     ortho = create_ortho_camera(-1, 1, 1, -1, -100, 100);
-    ortho->stencil_settings = get_normal_camera_stencil_setting();
-    ortho->clear_mode = CAMERA_CLEAR_NONE;
-    ortho->culling_mask = ((0xFF) & ~(1 << 2));
-
-    //perspective->clear_mode = CAMERA_CLEAR_NONE;
-    //ortho->clear_mode = CAMERA_CLEAR_NONE;
+    ortho->clear_mode = CAMERA_CLEAR_COLOR_DEPTH;
+    //ortho->culling_mask = ((0xFF) & ~(1 << 2));
 
     glm::vec2 screen_size = get_screen_size();
     perspective->full_screen = false;
-    perspective->view_port.position = glm::ivec2(1024 / 2, 0);
-    perspective->view_port.size = glm::ivec2(screen_size.x / 2, screen_size.y / 2);
+    perspective->view_port.position = glm::vec2(.5f, 0);
+    perspective->view_port.size = glm::vec2(.5f, .5f);
 
     ortho->full_screen = false;
-    ortho->view_port.position = glm::ivec2(0, 0);
-    ortho->view_port.size = glm::ivec2(screen_size.x / 2, screen_size.y / 2);
+    ortho->view_port.position = glm::vec2(0, 0);
+    ortho->view_port.size = glm::vec2(.5f, .5f);
 
     perspective->clear_color = red() + green();
     ortho->clear_color = blue() + green();
