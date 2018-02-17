@@ -413,10 +413,11 @@ void setup_fbo() {
     fbo_mesh->layer_mask = 1 << 2;
     set_uniform_vec2(fbo_material, "offset", glm::vec2(0, 0));
     set_uniform_vec2(fbo_material, "wrap", glm::vec2(1, 1));
+    fbo_material->depth_func = COMPARE_ALWAYS_TRUE;
 
     material_t *normal_material = create_default_material();
     normal_mesh = create_mesh_renderer(normal_material, mesh);
-    set_uniform_texture(normal_material, "my_texture", fbo_camera->target->color_texture);
+    set_uniform_texture(normal_material, "my_texture", fbo_camera->target->depth_texture);
     set_uniform_vec2(normal_material, "offset", glm::vec2(0, 0));
     set_uniform_vec2(normal_material, "wrap", glm::vec2(1, 1));
 }

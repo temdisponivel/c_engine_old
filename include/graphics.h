@@ -69,13 +69,7 @@ typedef struct mesh {
 enum TEXTURE_FORMAT {
     TEXTURE_RGB = GL_RGB,
     TEXTURE_RGBA = GL_RGBA,
-    TEXTURE_DEPTH = GL_DEPTH_COMPONENT,
-    TEXTURE_STENCIL = GL_STENCIL_INDEX
-};
-
-enum TEXTURE_PIXEL_TYPE {
-    TEXTURE_UNSIGNED_BYTE = GL_UNSIGNED_BYTE,
-    TEXTURE_UNSIGNED_INT = GL_UNSIGNED_INT,
+    TEXTURE_DEPTH = GL_DEPTH_STENCIL
 };
 
 typedef struct image {
@@ -314,7 +308,6 @@ typedef struct frame_buffer {
 
     texture_t *color_texture;
     texture_t *depth_texture;
-    texture_t *stencil_texture;
 
     glm::vec2 resolution;
 } frame_buffer_t;

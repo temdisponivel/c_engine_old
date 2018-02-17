@@ -20,23 +20,18 @@ void get_texture_gl_formats(image_t *image, uint *internal_format, uint *format,
         case TEXTURE_RGB:
             *internal_format = TEXTURE_RGB;
             *format = TEXTURE_RGB;
-            *pixel_type = TEXTURE_UNSIGNED_BYTE;
+            *pixel_type = GL_UNSIGNED_BYTE;
 
             break;
         case TEXTURE_RGBA:
             *internal_format = TEXTURE_RGBA;
             *format = TEXTURE_RGBA;
-            *pixel_type = TEXTURE_UNSIGNED_BYTE;
+            *pixel_type = GL_UNSIGNED_BYTE;
             break;
         case TEXTURE_DEPTH:
-            *internal_format = GL_DEPTH_COMPONENT24;
-            *format = TEXTURE_DEPTH;
-            *pixel_type = TEXTURE_UNSIGNED_INT;
-            break;
-        case TEXTURE_STENCIL:
-            *internal_format = GL_STENCIL_INDEX8;
-            *format = TEXTURE_STENCIL;
-            *pixel_type = TEXTURE_UNSIGNED_INT;
+            *internal_format = GL_DEPTH24_STENCIL8;
+            *format = GL_DEPTH_STENCIL;
+            *pixel_type = GL_UNSIGNED_INT_24_8;
             break;
     }
 }
@@ -1604,7 +1599,7 @@ frame_buffer_t *create_frame_buffer(glm::vec2 resolution) {
     texture_t *depth_texture = create_texture(depth_image, texture_config);
     glFramebufferTexture2D(
             GL_FRAMEBUFFER,
-            GL_DEPTH_ATTACHMENT, // NOTE: Maybe we need to receive this as parameter?!
+            GL_DEPTH_STENCIL_ATTACHMENT,
             GL_TEXTURE_2D,
             depth_texture->handle,
             0 //mip-map level
@@ -1612,29 +1607,13 @@ frame_buffer_t *create_frame_buffer(glm::vec2 resolution) {
     CHECK_GL_ERROR();
     CHECK_FBO_STATUS();
 
-    /*
-
-    image_t *stencil_image = create_image_full(null, TEXTURE_STENCIL, resolution);
-    texture_t *stencil_texture = create_texture(stencil_image, texture_config);
-    glFramebufferTexture2D(
-            GL_FRAMEBUFFER,
-            GL_STENCIL_ATTACHMENT, // NOTE: Maybe we need to receive this as parameter?!
-            GL_TEXTURE_2D,
-            stencil_texture->handle,
-            0 //mip-map level
-    );
-    CHECK_GL_ERROR();
-    CHECK_FBO_STATUS();
-
-     */
-
     glBindFramebuffer(GL_FRAMEBUFFER, HANDLE_NONE);
 
     frame_buffer_t *frame_buffer = (frame_buffer_t *) memalloc(sizeof(frame_buffer_t));
     frame_buffer->handle = handle;
     frame_buffer->color_texture = color_texture;
     frame_buffer->depth_texture = depth_texture;
-    //frame_buffer->stencil_texture = stencil_texture;
+    frame_buffer->resolution = resolution;
     return frame_buffer;
 }
 
@@ -1644,9 +1623,6 @@ void destroy_frame_buffer(frame_buffer_t *frame_buffer) {
 
     destroy_image(frame_buffer->depth_texture->image);
     destroy_texture(frame_buffer->depth_texture);
-
-    destroy_image(frame_buffer->stencil_texture->image);
-    destroy_texture(frame_buffer->stencil_texture);
 
     glDeleteFramebuffers(1, &frame_buffer->handle);
     memfree(frame_buffer);
