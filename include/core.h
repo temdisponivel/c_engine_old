@@ -57,6 +57,6 @@ window_t *get_window();
 
 glm::ivec2 get_screen_size();
 
-float get_window_ratio();
+float get_screen_ratio();
 
 #endif //CYNICAL_ENGINE_CPP_CORE_H

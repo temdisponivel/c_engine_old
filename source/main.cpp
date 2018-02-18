@@ -78,10 +78,10 @@ stencil_settings_t get_normal_camera_stencil_setting() {
     return settings;
 }
 
-void setup() {
-    char *vertex_shader_code = read_file_text("sound_data/shaders/default_vertex_shader.glsl");
-    char *fragment_shader_code = read_file_text("sound_data/shaders/default_fragment_shader.glsl");
-    char *geometry_shader_code = read_file_text("sound_data/shaders/default_geometry_shader.glsl");
+void basic_setup() {
+    char *vertex_shader_code = read_file_text("data/shaders/default_vertex_shader.glsl");
+    char *fragment_shader_code = read_file_text("data/shaders/default_fragment_shader.glsl");
+    char *geometry_shader_code = read_file_text("data/shaders/default_geometry_shader.glsl");
 
     vertex_shader = create_shader(vertex_shader_code, SHADER_TYPE::VERTEX_SHADER);
     frag_shader = create_shader(fragment_shader_code, SHADER_TYPE::FRAGMENT_SHADER);
@@ -94,14 +94,12 @@ void setup() {
     // Needs to set this so that stb_image loads the way opengl expects it!
     stbi_set_flip_vertically_on_load(true);
 
-    create_texture("sound_data/textures/the_witness.png", &texture_large, &image_large);
-    create_texture("sound_data/textures/the_witness_small.png", &texture, &image);
-    create_texture("sound_data/textures/braid.png", &mask_texture, &mask_image);
+    create_texture("data/textures/the_witness.png", &texture_large, &image_large);
+    create_texture("data/textures/the_witness_small.png", &texture, &image);
+    create_texture("data/textures/braid.png", &mask_texture, &mask_image);
 
-    model = create_model("sound_data/models/plane.cm");
+    model = create_model("data/models/plane.cm");
     mesh = create_mesh(model);
-
-    const int RENDER_QUANTITY = 10;
 
     shader = create_shader_program(
             *vertex_shader,
@@ -112,6 +110,12 @@ void setup() {
             VERTEX_TEXTURE_COORD_ATTRIBUTE_NAME,
             VERTEX_NORMAL_ATTRIBUTE_NAME
     );
+}
+
+void setup() {
+    basic_setup();
+
+    const int RENDER_QUANTITY = 10;
 
     material_t *mask_material = create_default_material();
     set_uniform_texture(mask_material, "my_texture", mask_texture);
@@ -168,7 +172,7 @@ void setup() {
 }
 
 void load_texture_2() {
-    image_t *image = create_image("sound_data/textures/braid.png");
+    image_t *image = create_image("data/textures/braid.png");
     texture_t *texture = create_texture(image, get_default_texture_config());
 
     for (int i = 0; i < renderers->length; ++i) {
@@ -303,7 +307,7 @@ void update() {
     glClear(GL_DEPTH_BUFFER_BIT);
     glClear(GL_COLOR_BUFFER_BIT);
 
-    perspective->perspective.aspect_ratio = get_window_ratio();
+    perspective->perspective.aspect_ratio = get_screen_ratio();
 
     update_renderers(perspective);
     update_renderers(ortho);
@@ -339,7 +343,9 @@ void callback(void *payload) {
 }
 
 void setup_fbo();
+
 void update_fbo();
+
 void close_fbo();
 
 camera_t *fbo_camera, *normal_camera;
@@ -347,9 +353,9 @@ mesh_renderer_t *fbo_mesh, *normal_mesh;
 material_t *normal_material;
 
 void setup_fbo() {
-    char *vertex_shader_code = read_file_text("sound_data/shaders/default_vertex_shader.glsl");
-    char *fragment_shader_code = read_file_text("sound_data/shaders/default_fragment_shader.glsl");
-    char *geometry_shader_code = read_file_text("sound_data/shaders/default_geometry_shader.glsl");
+    char *vertex_shader_code = read_file_text("data/shaders/default_vertex_shader.glsl");
+    char *fragment_shader_code = read_file_text("data/shaders/default_fragment_shader.glsl");
+    char *geometry_shader_code = read_file_text("data/shaders/default_geometry_shader.glsl");
 
     vertex_shader = create_shader(vertex_shader_code, SHADER_TYPE::VERTEX_SHADER);
     frag_shader = create_shader(fragment_shader_code, SHADER_TYPE::FRAGMENT_SHADER);
@@ -362,11 +368,11 @@ void setup_fbo() {
     // Needs to set this so that stb_image loads the way opengl expects it!
     stbi_set_flip_vertically_on_load(true);
 
-    create_texture("sound_data/textures/the_witness.png", &texture, &image_large);
-    create_texture("sound_data/textures/the_witness_small.png", &texture, &image);
-    create_texture("sound_data/textures/braid.png", &texture, &mask_image);
+    create_texture("data/textures/the_witness.png", &texture, &image_large);
+    create_texture("data/textures/the_witness_small.png", &texture, &image);
+    create_texture("data/textures/braid.png", &texture, &mask_image);
 
-    model = create_model("sound_data/models/plane.cm");
+    model = create_model("data/models/plane.cm");
     mesh = create_mesh(model);
 
     shader = create_shader_program(
@@ -456,110 +462,6 @@ void close_fbo() {
     release();
 }
 
-// OPEN AL
-
-typedef struct{
-    ALuint ID;
-
-    stb_vorbis* stream;
-    stb_vorbis_info info;
-
-    ALuint buffers[2];
-    ALuint source;
-    ALenum format;
-
-    size_t bufferSize;
-
-    size_t totalSamplesLeft;
-
-    bool shouldLoop;
-}AudioStream;
-
-void AudioStreamInit(AudioStream* self){
-    memset(self, 0, sizeof(AudioStream));
-    alGenSources(1, & self->source);
-    alGenBuffers(2, self->buffers);
-    self->bufferSize=4096*8;
-    self->shouldLoop=true;//We loop by default
-}
-
-void AudioStreamDeinit(AudioStream* self){
-    alDeleteSources(1, & self->source);
-    alDeleteBuffers(2, self->buffers);
-    stb_vorbis_close(self->stream);
-    memset(self, 0, sizeof(AudioStream));
-}
-
-bool AudioStreamStream(AudioStream* self, ALuint buffer){
-    //Uncomment this to avoid VLAs
-    //#define BUFFER_SIZE 4096*32
-#ifndef BUFFER_SIZE//VLAs ftw
-#define BUFFER_SIZE (self->bufferSize)
-#endif
-    ALshort pcm[BUFFER_SIZE];
-    int  size = 0;
-    int  result = 0;
-
-    while(size < BUFFER_SIZE){
-        result = stb_vorbis_get_samples_short_interleaved(self->stream, self->info.channels, pcm+size, BUFFER_SIZE-size);
-        if(result > 0) size += result*self->info.channels;
-        else break;
-    }
-
-    if(size == 0) return false;
-
-    alBufferData(buffer, self->format, pcm, size*sizeof(ALshort), self->info.sample_rate);
-    self->totalSamplesLeft-=size;
-#undef BUFFER_SIZE
-
-    return true;
-}
-
-bool AudioStreamOpen(AudioStream* self, const char* filename){
-    self->stream = stb_vorbis_open_filename((char*)filename, NULL, NULL);
-    if(not self->stream) return false;
-    // Get file info
-    self->info = stb_vorbis_get_info(self->stream);
-    if(self->info.channels == 2) self->format = AL_FORMAT_STEREO16;
-    else self->format = AL_FORMAT_MONO16;
-
-    if(not AudioStreamStream(self, self->buffers[0])) return false;
-    if(not AudioStreamStream(self, self->buffers[1])) return false;
-    alSourceQueueBuffers(self->source, 2, self->buffers);
-    alSourcePlay(self->source);
-
-    self->totalSamplesLeft=stb_vorbis_stream_length_in_samples(self->stream) * self->info.channels;
-
-    return true;
-}
-
-bool AudioStreamUpdate(AudioStream* self){
-    ALint processed=0;
-
-    alGetSourcei(self->source, AL_BUFFERS_PROCESSED, &processed);
-
-    while(processed--){
-        ALuint buffer=0;
-
-        alSourceUnqueueBuffers(self->source, 1, &buffer);
-
-        if(not AudioStreamStream(self, buffer)){
-            bool shouldExit=true;
-
-            if(self->shouldLoop){
-                stb_vorbis_seek_start(self->stream);
-                self->totalSamplesLeft=stb_vorbis_stream_length_in_samples(self->stream) * self->info.channels;
-                shouldExit=not AudioStreamStream(self, buffer);
-            }
-
-            if(shouldExit) return false;
-        }
-        alSourceQueueBuffers(self->source, 1, &buffer);
-    }
-
-    return true;
-}
-
 audio_source_t *source;
 
 void update_music() {
@@ -600,27 +502,57 @@ void update_music() {
     }
 }
 
+mesh_renderer_t *wire_frame_render;
+material_t *wire_frame_material;
+
+void setup_wire_frame() {
+    basic_setup();
+
+    perspective = create_perspective_camera(45, get_screen_ratio(), 0.1f, 100);
+    perspective->clear_color = green();
+
+    wire_frame_material = create_default_material();
+    wire_frame_render = create_mesh_renderer(wire_frame_material, mesh);
+    set_uniform_texture(wire_frame_material, "my_texture", texture_large);
+
+    wire_frame_render->entity->transform->position.z = -10;
+}
+
+int index = 0;
+
+void update_wire_frame() {
+    POLYGON_MODE modes[3] = {POLYGON_POINT, POLYGON_LINE, POLYGON_FILL};
+    if (is_key_pressed(KEY_SPACE)) {
+        set_polygon_mode(modes[index]);
+        index = (index + 1) % 3;
+    }
+
+    if (is_key_down(KEY_LEFT)) {
+        set_line_width(get_graphics_state().line_width - 1);
+    } else if (is_key_down(KEY_RIGHT)) {
+        set_line_width(get_graphics_state().line_width + 1);
+    } else if (is_key_down(KEY_DOWN)) {
+        set_point_size(get_graphics_state().point_size - 1);
+    } else if (is_key_down(KEY_UP)) {
+        set_point_size(get_graphics_state().point_size + 1);
+    }
+}
+
 int main(void) {
 
     // TODO: Read this from file
     engine_params_t params;
     params.window_title = (char *) "My game!!!";
     params.window_size = glm::ivec2(1024, 768);
-    params.update_callback = &update_music;
+    params.update_callback = &update_wire_frame;
     params.gl_major_version = 4;
     params.gl_minor_version = 0;
 
     prepare(params);
 
-    music_t *music = create_music("data/sounds/test_music.ogg");
-    source = create_audio_source();
-    set_music_on_source(source, music);
-    start_audio_source(source);
+    setup_wire_frame();
 
     loop();
-
-    destroy_music(music);
-    destroy_source(source);
 
     release();
 }

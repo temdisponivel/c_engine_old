@@ -1029,6 +1029,10 @@ void prepare_graphics() {
 
     gl_state->current_stencil_config = get_default_stencil_settings();
     gl_state->current_depth_settings = get_default_depth_settings();
+
+    gl_state->current_polygon_mode = POLYGON_DEFAULT;
+    gl_state->line_width = 1;
+    gl_state->point_size = 1;
 }
 
 void release_graphics() {
@@ -1638,4 +1642,27 @@ void destroy_frame_buffer(frame_buffer_t *frame_buffer) {
 
     glDeleteFramebuffers(1, &frame_buffer->handle);
     memfree(frame_buffer);
+}
+
+void set_polygon_mode(POLYGON_MODE mode) {
+    if (gl_state->current_polygon_mode != mode) {
+        gl_state->current_polygon_mode = mode;
+        glPolygonMode(GL_FRONT_AND_BACK, mode); // TODO: maybe add a option to decide the front or back?
+    }
+}
+
+void set_point_size(float size) {
+    size = fmaxf(size, 0.1f);
+    if (gl_state->point_size != size) {
+        glPointSize(size);
+        gl_state->point_size = size;
+    }
+}
+
+void set_line_width(float width) {
+    width = fmaxf(width, 0.1f);
+    if (gl_state->line_width != width) {
+        glLineWidth(width);
+        gl_state->line_width = width;
+    }
 }

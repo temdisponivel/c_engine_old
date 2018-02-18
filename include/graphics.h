@@ -387,6 +387,13 @@ typedef struct camera {
     frame_buffer_t *target;
 } camera_t;
 
+enum POLYGON_MODE {
+    POLYGON_LINE = GL_LINE,
+    POLYGON_POINT = GL_POINT,
+    POLYGON_FILL = GL_FILL,
+    POLYGON_DEFAULT = POLYGON_FILL
+};
+
 typedef struct graphics_state {
     CULL_FUNCTIONS current_cull_func;
 
@@ -404,9 +411,11 @@ typedef struct graphics_state {
     view_port_t current_view_port;
 
     frame_buffer_t *current_frame_buffer;
-} graphics_state_t;
 
-#define DEFAULT_COMPARE_FUNC GL_LESS
+    POLYGON_MODE current_polygon_mode;
+    float line_width;
+    float point_size;
+} graphics_state_t;
 
 color_rgba_t black();
 
@@ -599,5 +608,11 @@ void use_frame_buffer(frame_buffer_t *frame_buffer);
 frame_buffer_t *create_frame_buffer(glm::vec2 resolution);
 
 void destroy_frame_buffer(frame_buffer_t *frame_buffer);
+
+void set_polygon_mode(POLYGON_MODE mode);
+
+void set_point_size(float size);
+
+void set_line_width(float width);
 
 #endif //CYNICAL_ENGINE_CPP_GRAPHICS_H

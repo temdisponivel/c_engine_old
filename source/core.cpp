@@ -140,7 +140,7 @@ glm::ivec2 get_screen_size() {
     return engine_state->window->size;
 }
 
-float get_window_ratio() {
+float get_screen_ratio() {
     glm::ivec2 size = engine_state->window->size;
     return size.x / (float) size.y;
 }
