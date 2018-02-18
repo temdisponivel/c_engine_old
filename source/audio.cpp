@@ -15,11 +15,14 @@ void prepare_audio() {
 
     ALCdevice *device = alcOpenDevice(null);
     ENSURE(device != null);
+    CHECK_AL_ERROR();
 
     ALCcontext *context = alcCreateContext(device, null);
     ENSURE(context != null);
+    CHECK_AL_ERROR();
 
     alcMakeContextCurrent(context);
+    CHECK_AL_ERROR();
 
     audio_state = (audio_state_t *) memalloc(sizeof(audio_state_t));
     audio_state->volume_scale = 1;
@@ -151,10 +154,13 @@ audio_source_t *create_audio_source() {
     source->position = glm::vec3(0, 0, 0);
     source->volume = 1;
 
+    add(audio_state->all_audio_sources, source);
+
     return source;
 }
 
 void destroy_source(audio_source_t *source) {
+    remove(audio_state->all_audio_sources, source);
     alDeleteSources(1, &source->handle);
     memfree(source);
 }
@@ -189,7 +195,7 @@ void set_sound_on_source(audio_source_t *source, sound_t *sound) {
     source->type = SOURCE_SOUND;
     source->sound = sound;
 
-    alSourcei(source->handle, AL_BUFFER, source->handle);
+    alSourcei(source->handle, AL_BUFFER, sound->handle);
 }
 
 // TODO: make play_music

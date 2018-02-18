@@ -15,21 +15,22 @@ char *read_file_content(const char *file_path, long *length, bool is_string) {
     ENSURE(file != null);
 
     fseek(file, 0, SEEK_END);
-    *length = ftell(file);
+    long len = ftell(file);
 
-    long total_length = *length;
+    long total_length = len;
     if (is_string)
         total_length += 1;
 
-    char *buffer = (char *) memalloc(sizeof(char) * (total_length + 1));
+    char *buffer = (char *) memalloc(sizeof(char) * (total_length));
     fseek(file, 0, SEEK_SET);
-    fread(buffer, (uint) length, 1, file);
+    fread(buffer, (uint) total_length, 1, file);
 
     if (is_string)
-        buffer[*length] = '\0';
+        buffer[len] = '\0';
 
     fclose(file);
 
+    *length = len;
     return buffer;
 }
 

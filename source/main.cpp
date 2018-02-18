@@ -563,7 +563,7 @@ bool AudioStreamUpdate(AudioStream* self){
 AudioStream *stream;
 
 void update_music() {
-    AudioStreamUpdate(stream);
+    //AudioStreamUpdate(stream);
 }
 
 int main(void) {
@@ -580,15 +580,23 @@ int main(void) {
 
     stream = (AudioStream *) memalloc(sizeof(AudioStream));
 
-    float pos[3] = {0, 0, 0};
-    alListenerfv(AL_POSITION, pos);
-    alListenerfv(AL_VELOCITY, pos);
+    //float pos[3] = {0, 0, 0};
+    //alListenerfv(AL_POSITION, pos);
+    //alListenerfv(AL_VELOCITY, pos);
 
-    AudioStreamInit(stream);
-    if (!AudioStreamOpen(stream, "data/sounds/test_music.ogg"))
-    ERROR("DID NOT OPEN");
+    //AudioStreamInit(stream);
+    //if (!AudioStreamOpen(stream, "data/sounds/test_music.ogg"))
+        //ERROR("DID NOT OPEN");
+
+    sound_t *sound = create_sound("data/sounds/test_music.ogg");
+    audio_source_t *source = create_audio_source();
+    set_sound_on_source(source, sound);
+    start_audio_source(source);
 
     loop();
+
+    destroy_sound(sound);
+    destroy_source(source);
 
     release();
 }
