@@ -25,20 +25,32 @@ enum AUDIO_FORMAT {
     AUDIO_STEREO = AL_FORMAT_STEREO16,
 };
 
-typedef struct sound {
-    uint handle;
-
-    short *sound_data;
-    uint data_length;
+typedef struct audio_info {
     AUDIO_FORMAT format;
     uint channels;
     uint sample_rate;
+} audio_info_t;
+
+typedef struct sound {
+    uint handle;
+    audio_info_t info;
+
+    short *sound_data;
+    uint data_length;
 
     char *file_content;
 } sound_t;
 
 typedef struct music {
+    audio_info_t info;
 
+    stb_vorbis *audio_data;
+    uint samples_left;
+
+    uint back_buffer;
+    uint front_buffer;
+
+    stb_vorbis_alloc *alloc_buffer;
 } music_t;
 
 typedef struct audio_source {
@@ -77,6 +89,10 @@ sound_t *create_sound(const char *file_path);
 
 void destroy_sound(sound_t *sound);
 
+music_t *create_music(const char *file_path);
+
+void destroy_music(music_t *music);
+
 audio_source_t *create_audio_source();
 
 void destroy_source(audio_source_t *source);
@@ -90,5 +106,7 @@ void stop_audio_source(audio_source_t *source);
 void pause_audio_source(audio_source_t *source);
 
 void set_sound_on_source(audio_source_t *source, sound_t *sound);
+
+void set_music_on_source(audio_source_t *source, music_t *music);
 
 #endif //CYNICAL_ENGINE_CPP_AUDIO_H

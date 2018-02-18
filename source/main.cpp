@@ -598,16 +598,14 @@ int main(void) {
 
     prepare(params);
 
-    sound_t *sound = create_sound("data/sounds/test_music.ogg");
+    music_t *music = create_music("data/sounds/test_music.ogg");
     source = create_audio_source();
-    set_sound_on_source(source, sound);
+    set_music_on_source(source, music);
     start_audio_source(source);
-
-    source->position.x = 10;
 
     loop();
 
-    destroy_sound(sound);
+    destroy_music(music);
     destroy_source(source);
 
     release();

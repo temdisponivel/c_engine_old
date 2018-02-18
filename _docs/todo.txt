@@ -1,4 +1,8 @@
-add sound
+add audio
+    add music
+    add distance attenuation
+    fix 3D problems
+
 
 move stencil settings to material
 
