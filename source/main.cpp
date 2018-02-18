@@ -560,10 +560,19 @@ bool AudioStreamUpdate(AudioStream* self){
     return true;
 }
 
-AudioStream *stream;
+audio_source_t *source;
 
 void update_music() {
     //AudioStreamUpdate(stream);
+    if (is_key_down(KEY_LEFT)) {
+        source->pitch -= 1 * get_dt();
+    } else if (is_key_down(KEY_RIGHT)) {
+        source->pitch += 1 * get_dt();
+    } else if (is_key_down(KEY_DOWN)) {
+        source->volume -= 1 * get_dt();
+    } else if (is_key_down(KEY_UP)) {
+        source->volume += 1 * get_dt();
+    }
 }
 
 int main(void) {
@@ -578,18 +587,8 @@ int main(void) {
 
     prepare(params);
 
-    stream = (AudioStream *) memalloc(sizeof(AudioStream));
-
-    //float pos[3] = {0, 0, 0};
-    //alListenerfv(AL_POSITION, pos);
-    //alListenerfv(AL_VELOCITY, pos);
-
-    //AudioStreamInit(stream);
-    //if (!AudioStreamOpen(stream, "data/sounds/test_music.ogg"))
-        //ERROR("DID NOT OPEN");
-
     sound_t *sound = create_sound("data/sounds/test_music.ogg");
-    audio_source_t *source = create_audio_source();
+    source = create_audio_source();
     set_sound_on_source(source, sound);
     start_audio_source(source);
 

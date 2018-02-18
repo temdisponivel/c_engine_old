@@ -74,9 +74,11 @@ void update_listener() {
 void update_audio_source(audio_source_t *source) {
     glm::vec3 pos = source->position;
 
+    source->volume = fmaxf(source->volume, 0);
     alSourcef(source->handle, AL_GAIN, source->volume);
     CHECK_AL_ERROR();
 
+    source->pitch = fmaxf(source->pitch, 0);
     alSourcef(source->handle, AL_PITCH, source->pitch);
     CHECK_AL_ERROR();
 
@@ -153,6 +155,7 @@ audio_source_t *create_audio_source() {
     source->state = SOURCE_STOPPED;
     source->position = glm::vec3(0, 0, 0);
     source->volume = 1;
+    source->pitch = 1;
 
     add(audio_state->all_audio_sources, source);
 
