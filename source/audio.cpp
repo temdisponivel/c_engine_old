@@ -90,7 +90,7 @@ bool stream_music_to_buff(music_t *music, uint buffer) {
         if (samples_read == 0)
             break;
         else
-            data_read_size = samples_read * music->info.channels;
+            data_read_size += samples_read * music->info.channels;
     }
 
     if (data_read_size == 0)
@@ -105,6 +105,9 @@ bool stream_music_to_buff(music_t *music, uint buffer) {
                 data_read_size * sizeof(short),
                 music->info.sample_rate
         );
+        CHECK_AL_ERROR();
+
+        return true;
     }
 }
 
@@ -119,28 +122,43 @@ void init_stream_source(audio_source_t *source) {
     uint samples = stb_vorbis_stream_length_in_samples(music->audio_data);
     music->samples_left = samples * music->info.channels;
 
-    // Only buffer back buffer if the front was buffered
-    if (stream_music_to_buff(music, music->front_buffer)) {
-        alSourceQueueBuffers(source->handle, 1, &music->front_buffer);
-        
-        if (stream_music_to_buff(music, music->back_buffer)) {
-            alSourceQueueBuffers(source->handle, 1, &music->back_buffer);
+    uint buffer;
+
+    int queued;
+    alGetSourcei(source->handle, AL_BUFFERS_QUEUED, &queued);
+    if (queued > 0) {
+        int processed;
+        alGetSourcei(source->handle, AL_BUFFERS_PROCESSED, &processed);
+        if (processed != 0) {
+
+            alSourceUnqueueBuffers(source->handle, 1, &buffer);
+            stream_music_to_buff(music, buffer);
+            alSourceQueueBuffers(source->handle, 1, &buffer);
+            CHECK_AL_ERROR();
         }
+    } else {
+        stream_music_to_buff(music, source->music->buffers[0]);
+        stream_music_to_buff(music, source->music->buffers[1]);
+        alSourceQueueBuffers(source->handle, 2, source->music->buffers);
+        CHECK_AL_ERROR();
     }
 }
 
 void update_music(audio_source_t *source) {
     int buffers_streamed;
     alGetSourcei(source->handle, AL_BUFFERS_PROCESSED, &buffers_streamed);
+    CHECK_AL_ERROR();
 
-    // If the front buffer was already streamed
-    if (buffers_streamed > 0) {
+    // Process all buffers that were already streamed
+    while (buffers_streamed--) {
 
-        uint back_buffer;
-        alSourceUnqueueBuffers(source->handle, 1, &back_buffer);
+        uint buffer;
+        alSourceUnqueueBuffers(source->handle, 1, &buffer);
+        CHECK_AL_ERROR();
 
-        if (stream_music_to_buff(source->music, back_buffer)) {
-            alSourceQueueBuffers(source->handle, 1, &back_buffer); // Put the buffer back into the queue
+        if (stream_music_to_buff(source->music, buffer)) {
+            alSourceQueueBuffers(source->handle, 1, &buffer); // Put the buffer back into the queue
+            CHECK_AL_ERROR();
         } else {
             if (source->loop) {
                 init_stream_source(source); // reset the stream because we should loop
@@ -235,29 +253,25 @@ void destroy_sound(sound_t *sound) {
 }
 
 music_t *create_music(const char *file_path) {
-    uint buffers[2];
-    alGenBuffers(2, buffers);
+    music_t *music = (music_t *) memalloc(sizeof(music_t));
 
-    uint front_buffer = buffers[0];
-    uint back_buffer = buffers[1];
+    alGenBuffers(2, music->buffers);
 
-    #define ALLOC_BUFFER_SIZE 1024
+    #define ALLOC_BUFFER_SIZE (1024 * 1024) // 1 MB TODO: is this enough?!
 
     stb_vorbis_alloc *alloc_buffer = (stb_vorbis_alloc *) memalloc(sizeof(stb_vorbis_alloc));
-    alloc_buffer->alloc_buffer = (char *) memalloc(ALLOC_BUFFER_SIZE); // 1 KB TODO: is this enough?!
+    alloc_buffer->alloc_buffer = (char *) memalloc(ALLOC_BUFFER_SIZE);
     alloc_buffer->alloc_buffer_length_in_bytes = ALLOC_BUFFER_SIZE;
 
     int error;
-    stb_vorbis *data = stb_vorbis_open_filename(file_path, &error, alloc_buffer);
-    ENSURE(data != null);
+    stb_vorbis *data = stb_vorbis_open_filename(file_path, &error, null);
+    ENSURE(data != null)
     stb_vorbis_info info = stb_vorbis_get_info(data);
 
-    music_t *music = (music_t *) memalloc(sizeof(music_t));
 
     music->audio_data = data;
     music->alloc_buffer = alloc_buffer;
-    music->front_buffer = front_buffer;
-    music->back_buffer = back_buffer;
+
     music->info.sample_rate = info.sample_rate;
     music->info.channels = (uint) info.channels;
     music->info.format = get_format((uint) info.channels);
@@ -271,8 +285,7 @@ void destroy_music(music_t *music) {
     memfree(music->alloc_buffer->alloc_buffer);
     memfree(music->alloc_buffer);
 
-    uint buffers[2] = {music->front_buffer, music->back_buffer};
-    glDeleteBuffers(2, buffers);
+    glDeleteBuffers(2, music->buffers);
 }
 
 audio_source_t *create_audio_source() {
@@ -338,6 +351,7 @@ void set_music_on_source(audio_source_t *source, music_t *music) {
     source->music = music;
 
     init_stream_source(source);
+    alSourcePlay(source->handle);
 }
 
 // TODO: make play_music

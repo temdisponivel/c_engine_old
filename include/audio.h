@@ -47,8 +47,7 @@ typedef struct music {
     stb_vorbis *audio_data;
     uint samples_left;
 
-    uint back_buffer;
-    uint front_buffer;
+    uint buffers[2];
 
     stb_vorbis_alloc *alloc_buffer;
 } music_t;

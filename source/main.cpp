@@ -601,7 +601,7 @@ int main(void) {
     music_t *music = create_music("data/sounds/test_music.ogg");
     source = create_audio_source();
     set_music_on_source(source, music);
-    start_audio_source(source);
+    //start_audio_source(source);
 
     loop();
 
