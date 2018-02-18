@@ -52,6 +52,7 @@ typedef struct music {
     stb_vorbis_alloc *alloc_buffer;
 } music_t;
 
+// TODO: Maybe we should retrieve the properties of the audio from openAL instead of bookeping ourselfs
 typedef struct audio_source {
     uint handle;
     glm::vec3 position;

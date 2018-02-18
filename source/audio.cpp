@@ -72,7 +72,8 @@ void update_listener() {
 }
 
 bool stream_music_to_buff(music_t *music, uint buffer) {
-    #define STREAM_BUFFER_SIZE 1024
+    #define STREAM_BUFFER_SIZE (4096)
+
     short stream_buffer[STREAM_BUFFER_SIZE];
     uint data_read_size = 0;
 
@@ -93,9 +94,9 @@ bool stream_music_to_buff(music_t *music, uint buffer) {
             data_read_size += samples_read * music->info.channels;
     }
 
-    if (data_read_size == 0)
+    if (data_read_size == 0) {
         return false;
-    else {
+    } else {
         music->samples_left -= data_read_size;
 
         alBufferData(
@@ -111,46 +112,47 @@ bool stream_music_to_buff(music_t *music, uint buffer) {
     }
 }
 
-
-void init_stream_source(audio_source_t *source) {
+bool init_stream_source(audio_source_t *source) {
     ENSURE(source->type == SOURCE_MUSIC);
 
+    {
+        // Unqueue all buffers before streaming from begging
+        alSourceStop(source->handle);
+        alSourcei(source->handle, AL_BUFFER, 0); // Detach all buffers!
+
+        CHECK_AL_ERROR();
+
+        uint handles[16];
+        int count;
+        alGetSourcei(source->handle, AL_BUFFERS_PROCESSED, &count);
+        if (count > 0) {
+            alSourceUnqueueBuffers(source->handle, count, handles);
+            CHECK_AL_ERROR();
+        }
+    }
+
     music_t *music = source->music;
-    
+
     stb_vorbis_seek_start(music->audio_data);
 
     uint samples = stb_vorbis_stream_length_in_samples(music->audio_data);
     music->samples_left = samples * music->info.channels;
 
-    uint buffer;
-
-    int queued;
-    alGetSourcei(source->handle, AL_BUFFERS_QUEUED, &queued);
-    if (queued > 0) {
-        int processed;
-        alGetSourcei(source->handle, AL_BUFFERS_PROCESSED, &processed);
-        if (processed != 0) {
-
-            alSourceUnqueueBuffers(source->handle, 1, &buffer);
-            stream_music_to_buff(music, buffer);
-            alSourceQueueBuffers(source->handle, 1, &buffer);
-            CHECK_AL_ERROR();
-        }
-    } else {
-        stream_music_to_buff(music, source->music->buffers[0]);
-        stream_music_to_buff(music, source->music->buffers[1]);
-        alSourceQueueBuffers(source->handle, 2, source->music->buffers);
-        CHECK_AL_ERROR();
-    }
+    stream_music_to_buff(music, source->music->buffers[0]);
+    stream_music_to_buff(music, source->music->buffers[1]);
+    alSourceQueueBuffers(source->handle, 2, source->music->buffers);
+    CHECK_AL_ERROR();
 }
 
 void update_music(audio_source_t *source) {
+    ENSURE(source->type == SOURCE_MUSIC);
+
     int buffers_streamed;
     alGetSourcei(source->handle, AL_BUFFERS_PROCESSED, &buffers_streamed);
     CHECK_AL_ERROR();
 
     // Process all buffers that were already streamed
-    while (buffers_streamed--) {
+    while (buffers_streamed-- > 0) {
 
         uint buffer;
         alSourceUnqueueBuffers(source->handle, 1, &buffer);
@@ -180,7 +182,14 @@ void update_audio_source(audio_source_t *source) {
     alSourcef(source->handle, AL_PITCH, source->pitch);
     CHECK_AL_ERROR();
 
-    alSourcei(source->handle, AL_LOOPING, source->loop ? AL_TRUE : AL_FALSE);
+    bool loop;
+    // We never tell openAL that a queued buffer is looping, we loop the buffer by hand
+    if (source->type == SOURCE_MUSIC)
+        loop = false;
+    else
+        loop = source->loop;
+
+    alSourcei(source->handle, AL_LOOPING, loop ? AL_TRUE : AL_FALSE);
     CHECK_AL_ERROR();
 
     alSource3f(source->handle, AL_POSITION, pos.x, pos.y, pos.z);
@@ -253,11 +262,10 @@ void destroy_sound(sound_t *sound) {
 }
 
 music_t *create_music(const char *file_path) {
-    music_t *music = (music_t *) memalloc(sizeof(music_t));
+    uint buffers[2];
+    alGenBuffers(2, buffers);
 
-    alGenBuffers(2, music->buffers);
-
-    #define ALLOC_BUFFER_SIZE (1024 * 1024) // 1 MB TODO: is this enough?!
+#define ALLOC_BUFFER_SIZE (1024 * 1024) // 1 MB TODO: is this enough?!
 
     stb_vorbis_alloc *alloc_buffer = (stb_vorbis_alloc *) memalloc(sizeof(stb_vorbis_alloc));
     alloc_buffer->alloc_buffer = (char *) memalloc(ALLOC_BUFFER_SIZE);
@@ -268,7 +276,10 @@ music_t *create_music(const char *file_path) {
     ENSURE(data != null)
     stb_vorbis_info info = stb_vorbis_get_info(data);
 
+    music_t *music = (music_t *) memalloc(sizeof(music_t));
 
+    music->buffers[0] = buffers[0];
+    music->buffers[1] = buffers[1];
     music->audio_data = data;
     music->alloc_buffer = alloc_buffer;
 
@@ -297,6 +308,7 @@ audio_source_t *create_audio_source() {
     source->position = glm::vec3(0, 0, 0);
     source->volume = 1;
     source->pitch = 1;
+    source->loop = false;
 
     add(audio_state->all_audio_sources, source);
 
@@ -316,24 +328,25 @@ void set_audio_scale(float audio_scale) {
 
 void start_audio_source(audio_source_t *source) {
     if (source->state != SOURCE_PLAYING) {
-        if (source->type == SOURCE_MUSIC) {
-            init_stream_source(source);
-        }
-
         alSourcePlay(source->handle);
         source->state = SOURCE_PLAYING;
     }
 }
 
 void stop_audio_source(audio_source_t *source) {
-    if (source->state == SOURCE_STOPPED) {
-        alSourceStop(source->handle);
+    if (source->state != SOURCE_STOPPED) {
+        if (source->type == SOURCE_MUSIC) {
+            init_stream_source(source);
+        } else {
+            alSourceStop(source->handle);
+        }
+
         source->state = SOURCE_STOPPED;
     }
 }
 
 void pause_audio_source(audio_source_t *source) {
-    if (source->state == SOURCE_PLAYING) {
+    if (source->state != SOURCE_PAUSED) {
         alSourcePause(source->handle);
         source->state = SOURCE_PAUSED;
     }
@@ -343,15 +356,20 @@ void set_sound_on_source(audio_source_t *source, sound_t *sound) {
     source->type = SOURCE_SOUND;
     source->sound = sound;
 
-    alSourcei(source->handle, AL_BUFFER, sound->handle);
+    stop_audio_source(source);
+
+    // Link the buffer with the source
+    alSourcei(source->handle, AL_BUFFER, 0); // Detach any buffers previously linked
+    alSourcei(source->handle, AL_BUFFER, sound->handle); // Link the new buffer
 }
 
 void set_music_on_source(audio_source_t *source, music_t *music) {
     source->type = SOURCE_MUSIC;
     source->music = music;
 
-    init_stream_source(source);
-    alSourcePlay(source->handle);
+    // Force the source to stop
+    source->state = SOURCE_PLAYING;
+    stop_audio_source(source);
 }
 
 // TODO: make play_music

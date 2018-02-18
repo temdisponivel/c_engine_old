@@ -584,6 +584,20 @@ void update_music() {
     } else if (is_key_down(KEY_D)) {
         source->position.x += dt;
     }
+
+    if (is_key_pressed(KEY_SPACE)) {
+        if (source->state == SOURCE_PAUSED || source->state == SOURCE_STOPPED)
+            start_audio_source(source);
+        else
+            pause_audio_source(source);
+    }
+
+    if (is_key_pressed(KEY_ENTER)) {
+        if (source->state == SOURCE_STOPPED)
+            start_audio_source(source);
+        else
+            stop_audio_source(source);
+    }
 }
 
 int main(void) {
@@ -601,7 +615,7 @@ int main(void) {
     music_t *music = create_music("data/sounds/test_music.ogg");
     source = create_audio_source();
     set_music_on_source(source, music);
-    //start_audio_source(source);
+    start_audio_source(source);
 
     loop();
 

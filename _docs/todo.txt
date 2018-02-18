@@ -1,7 +1,7 @@
 add audio
-    add music
     add distance attenuation
     fix 3D problems
+    add properties like duration, set position, etc
 
 
 move stencil settings to material
