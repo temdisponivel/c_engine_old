@@ -573,6 +573,17 @@ void update_music() {
     } else if (is_key_down(KEY_UP)) {
         source->volume += 1 * get_dt();
     }
+
+    float dt = get_dt();
+    if (is_key_down(KEY_W)) {
+        source->position.y -= dt;
+    } else if (is_key_down(KEY_S)) {
+        source->position.y += dt;
+    } else if (is_key_down(KEY_A)) {
+        source->position.x -= dt;
+    } else if (is_key_down(KEY_D)) {
+        source->position.x += dt;
+    }
 }
 
 int main(void) {
@@ -591,6 +602,8 @@ int main(void) {
     source = create_audio_source();
     set_sound_on_source(source, sound);
     start_audio_source(source);
+
+    source->position.x = 10;
 
     loop();
 

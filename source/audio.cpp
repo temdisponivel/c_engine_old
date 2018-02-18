@@ -82,13 +82,16 @@ void update_audio_source(audio_source_t *source) {
     alSourcef(source->handle, AL_PITCH, source->pitch);
     CHECK_AL_ERROR();
 
+    alSourcei(source->handle, AL_LOOPING, source->loop ? AL_TRUE : AL_FALSE);
+    CHECK_AL_ERROR();
+
     alSource3f(source->handle, AL_POSITION, pos.x, pos.y, pos.z);
     CHECK_AL_ERROR();
 
-    alSource3f(source->handle, AL_VELOCITY, pos.x, pos.y, pos.z); // TODO: add velocity?
+    alSource3f(source->handle, AL_VELOCITY, 0, 0, 0); // TODO: add velocity?
     CHECK_AL_ERROR();
 
-    alSource3f(source->handle, AL_DIRECTION, pos.x, pos.y, pos.z); // TODO: add orientation?
+    alSource3f(source->handle, AL_DIRECTION, 0, 0, 0); // TODO: add orientation?
     CHECK_AL_ERROR();
 
     // TODO: maybe we need to update the source on al?!
