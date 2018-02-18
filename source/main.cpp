@@ -79,26 +79,26 @@ stencil_settings_t get_normal_camera_stencil_setting() {
 }
 
 void setup() {
-    char *vertex_shader_code = read_file_text("data/shaders/default_vertex_shader.glsl");
-    char *fragment_shader_code = read_file_text("data/shaders/default_fragment_shader.glsl");
-    char *geometry_shader_code = read_file_text("data/shaders/default_geometry_shader.glsl");
+    char *vertex_shader_code = read_file_text("sound_data/shaders/default_vertex_shader.glsl");
+    char *fragment_shader_code = read_file_text("sound_data/shaders/default_fragment_shader.glsl");
+    char *geometry_shader_code = read_file_text("sound_data/shaders/default_geometry_shader.glsl");
 
     vertex_shader = create_shader(vertex_shader_code, SHADER_TYPE::VERTEX_SHADER);
     frag_shader = create_shader(fragment_shader_code, SHADER_TYPE::FRAGMENT_SHADER);
     geometry_shader = create_shader(geometry_shader_code, SHADER_TYPE::GEOMETRY_SHADER);
 
-    free_file_text(vertex_shader_code);
-    free_file_text(fragment_shader_code);
-    free_file_text(geometry_shader_code);
+    free_file_content(vertex_shader_code);
+    free_file_content(fragment_shader_code);
+    free_file_content(geometry_shader_code);
 
     // Needs to set this so that stb_image loads the way opengl expects it!
     stbi_set_flip_vertically_on_load(true);
 
-    create_texture("data/textures/the_witness.png", &texture_large, &image_large);
-    create_texture("data/textures/the_witness_small.png", &texture, &image);
-    create_texture("data/textures/braid.png", &mask_texture, &mask_image);
+    create_texture("sound_data/textures/the_witness.png", &texture_large, &image_large);
+    create_texture("sound_data/textures/the_witness_small.png", &texture, &image);
+    create_texture("sound_data/textures/braid.png", &mask_texture, &mask_image);
 
-    model = create_model("data/models/plane.cm");
+    model = create_model("sound_data/models/plane.cm");
     mesh = create_mesh(model);
 
     const int RENDER_QUANTITY = 10;
@@ -168,7 +168,7 @@ void setup() {
 }
 
 void load_texture_2() {
-    image_t *image = create_image("data/textures/braid.png");
+    image_t *image = create_image("sound_data/textures/braid.png");
     texture_t *texture = create_texture(image, get_default_texture_config());
 
     for (int i = 0; i < renderers->length; ++i) {
@@ -202,7 +202,7 @@ void update_renderers(camera_t *camera) {
         transform_t *transform = renderer->entity->transform;
         material_t *material = renderer->material;
 
-        //transform->position = glm::vec3(0, 0, -1);
+        //transform->listener_pos = glm::vec3(0, 0, -1);
 
         if (is_key_down(KEY_SPACE)) {
             transform->rotation = glm::quat();
@@ -347,26 +347,26 @@ mesh_renderer_t *fbo_mesh, *normal_mesh;
 material_t *normal_material;
 
 void setup_fbo() {
-    char *vertex_shader_code = read_file_text("data/shaders/default_vertex_shader.glsl");
-    char *fragment_shader_code = read_file_text("data/shaders/default_fragment_shader.glsl");
-    char *geometry_shader_code = read_file_text("data/shaders/default_geometry_shader.glsl");
+    char *vertex_shader_code = read_file_text("sound_data/shaders/default_vertex_shader.glsl");
+    char *fragment_shader_code = read_file_text("sound_data/shaders/default_fragment_shader.glsl");
+    char *geometry_shader_code = read_file_text("sound_data/shaders/default_geometry_shader.glsl");
 
     vertex_shader = create_shader(vertex_shader_code, SHADER_TYPE::VERTEX_SHADER);
     frag_shader = create_shader(fragment_shader_code, SHADER_TYPE::FRAGMENT_SHADER);
     geometry_shader = create_shader(geometry_shader_code, SHADER_TYPE::GEOMETRY_SHADER);
 
-    free_file_text(vertex_shader_code);
-    free_file_text(fragment_shader_code);
-    free_file_text(geometry_shader_code);
+    free_file_content(vertex_shader_code);
+    free_file_content(fragment_shader_code);
+    free_file_content(geometry_shader_code);
 
     // Needs to set this so that stb_image loads the way opengl expects it!
     stbi_set_flip_vertically_on_load(true);
 
-    create_texture("data/textures/the_witness.png", &texture, &image_large);
-    create_texture("data/textures/the_witness_small.png", &texture, &image);
-    create_texture("data/textures/braid.png", &texture, &mask_image);
+    create_texture("sound_data/textures/the_witness.png", &texture, &image_large);
+    create_texture("sound_data/textures/the_witness_small.png", &texture, &image);
+    create_texture("sound_data/textures/braid.png", &texture, &mask_image);
 
-    model = create_model("data/models/plane.cm");
+    model = create_model("sound_data/models/plane.cm");
     mesh = create_mesh(model);
 
     shader = create_shader_program(
@@ -568,21 +568,6 @@ void update_music() {
 
 int main(void) {
 
-    stream = (AudioStream *) memalloc(sizeof(AudioStream));
-
-    ALCdevice *device = alcOpenDevice(null);
-    ALCcontext *context = alcCreateContext(device, null);
-    alcMakeContextCurrent(context);
-
-    float pos[3] = {0, 0, 0};
-    alListenerfv(AL_POSITION, pos);
-    alListenerfv(AL_VELOCITY, pos);
-    alListenerfv(AL_ORIENTATION, pos);
-
-    AudioStreamInit(stream);
-    if (!AudioStreamOpen(stream, "data/sounds/test_music.ogg"))
-        ERROR("DID NOT OPEN");
-
     // TODO: Read this from file
     engine_params_t params;
     params.window_title = (char *) "My game!!!";
@@ -592,6 +577,16 @@ int main(void) {
     params.gl_minor_version = 0;
 
     prepare(params);
+
+    stream = (AudioStream *) memalloc(sizeof(AudioStream));
+
+    float pos[3] = {0, 0, 0};
+    alListenerfv(AL_POSITION, pos);
+    alListenerfv(AL_VELOCITY, pos);
+
+    AudioStreamInit(stream);
+    if (!AudioStreamOpen(stream, "data/sounds/test_music.ogg"))
+    ERROR("DID NOT OPEN");
 
     loop();
 

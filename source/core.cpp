@@ -68,6 +68,7 @@ ENGINE_PREPARE_RESULT prepare(engine_params_t params) {
     prepare_time();
     prepare_graphics();
     prepare_input(glfw_window);
+    prepare_audio();
 
     return ENGINE_PREPARE_RESULT::SUCCESS;
 }
@@ -78,6 +79,8 @@ void loop() {
         time_start_frame();
 
         update_input();
+
+        update_audio();
 
         simulate();
 
@@ -116,6 +119,9 @@ void draw() {
 void release() {
     release_graphics();
     release_input();
+    release_audio();
+    release_time();
+
     glfwDestroyWindow(engine_state->window->glfw_window);
     memfree(engine_state->window->title);
     memfree(engine_state);

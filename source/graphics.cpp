@@ -67,11 +67,14 @@ image_t *create_image(const char *image_file_path) {
         format = TEXTURE_FORMAT::TEXTURE_RGBA;
 
     image_t *image = create_image_full(data, format, glm::vec2(width, height));
+
+    // NOTE: We could, in theory, release the image content right after uploading to opengl
+
     return image;
 }
 
 void destroy_image(image_t *image) {
-    // Image data is null when the image was created for a FBO
+    // Image sound_data is null when the image was created for a FBO
     if (image->data != null) {
         stbi_image_free(image->data);
     }
@@ -364,6 +367,8 @@ mesh_t *create_mesh(model_t *model) {
 
     glBindVertexArray(vao);
     CHECK_GL_ERROR();
+
+    // TODO: move this fill vbo to a separate functions so we can update the mesh's data on-demand
 
     if (!null_or_empty(model->indices)) {
         glGenBuffers(1, &indices_vbo);

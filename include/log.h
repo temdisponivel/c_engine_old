@@ -127,6 +127,31 @@ void ERRORF(const char *format, ...);
             case GL_INVALID_VALUE:\
                 ERROR(MSG "GL_INVALID_VALUE");\
                 break;\
+            default:\
+                ERROR("UNKOWN GL ERROR!");\
+                break;\
+        }\
+    }\
+}\
+
+#define PRINT_AL_ERROR(MSG,ERR) {\
+    if ((ERR) != AL_NO_ERROR) {\
+        switch ((ERR)) {\
+            case AL_INVALID_ENUM:\
+                ERROR(MSG "AL_INVALID_ENUM");\
+                break;\
+            case AL_INVALID_NAME:\
+                ERROR(MSG "AL_INVALID_NAME");\
+                break;\
+            case AL_INVALID_OPERATION:\
+                ERROR(MSG "AL_INVALID_OPERATION");\
+                break;\
+            case AL_INVALID_VALUE:\
+                ERROR(MSG "AL_INVALID_VALUE");\
+                break;\
+            default:\
+                ERROR("UNKOWN AL ERROR");\
+                break;\
         }\
     }\
 }\
@@ -156,6 +181,9 @@ void ERRORF(const char *format, ...);
             break;\
         case GL_FRAMEBUFFER_INCOMPLETE_LAYER_TARGETS:\
             ERROR(MSG "GL_FRAMEBUFFER_INCOMPLETE_LAYER_TARGETS");\
+            break;\
+        default:\
+            ERROR("UNKOWN FBO STATUS");\
             break;\
     }\
 }\
@@ -210,6 +238,13 @@ void ERRORF(const char *format, ...);
     }\
 }\
 
+#define CHECK_AL_ERROR() {\
+    ALenum error = alGetError();\
+    if (error != AL_NO_ERROR) {\
+        PRINT_AL_ERROR("Al error: ", error);\
+    }\
+}\
+
 #else
 
 #define MESSAGE(MSG)
@@ -226,6 +261,9 @@ void ERRORF(const char *format, ...);
 #define CHECK_SHADER_COMPILE_STATUS(SHADER,SOURCE_CODE)
 #define CHECK_SHADER_LINK_STATUS(PROG_HANDLE)
 #define CHECK_GL_ERROR()
+#define CHECK_FBO_STATUS()
+#define PRINT_AL_ERROR(MSG,ERROR)
+#define CHECK_AL_ERROR()
 
 #endif
 

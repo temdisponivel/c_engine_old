@@ -1,11 +1,11 @@
 VAO is the opengl representation of a model
 
 A VAO has a bunch of attribute lists
-	- Each attribute list is used to store some set of data about a 3D mode
+	- Each attribute list is used to store some set of sound_data about a 3D mode
 		- So one attribute list stores the vertex screen_position, another stores the vertex colors, another stores the normals, etc
 
 
-A VBO is data that can be store in a attribute list
+A VBO is sound_data that can be store in a attribute list
 
 
 VAO					VBO
@@ -22,13 +22,13 @@ ______________________
 
 Vertex shader - Geometry shader - Rasterizer Engine - Fragment shader
 
-Create VAO - bind VAO - create VBO - buff VBO data - configure VBO data pattern and add the VBO to the VAO (glVertexAttribPointer) - enable VBO index
+Create VAO - bind VAO - create VBO - buff VBO sound_data - configure VBO sound_data pattern and add the VBO to the VAO (glVertexAttribPointer) - enable VBO index
 
 
-The shader receives data from the VAO and draws them.
+The shader receives sound_data from the VAO and draws them.
 
 
-If OpenGL suddenly crashs on draw functions (glDrawArrays), the data you are trying to draw (data on the VBO attached to the current VAO) is invalid.
+If OpenGL suddenly crashs on draw functions (glDrawArrays), the sound_data you are trying to draw (sound_data on the VBO attached to the current VAO) is invalid.
 
 to draw, do (every time):
 

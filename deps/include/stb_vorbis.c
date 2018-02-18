@@ -87,7 +87,7 @@ extern "C" {
 // normally stb_vorbis uses malloc() to allocate memory at startup,
 // and alloca() to allocate temporary memory during a frame on the
 // stack. (Memory consumption will depend on the amount of setup
-// data in the file and how you set the compile flags for speed
+// sound_data in the file and how you set the compile flags for speed
 // vs. size. In my test files the maximal-size usage is ~150KB.)
 //
 // You can modify the wrapper functions in the source (setup_malloc,
@@ -95,7 +95,7 @@ extern "C" {
 // can use a simpler allocation model: you pass in a buffer from
 // which stb_vorbis will allocate _all_ its memory (including the
 // temp memory). "open" may fail with a VORBIS_outofmem if you
-// do not pass in enough data; there is no way to determine how
+// do not pass in enough sound_data; there is no way to determine how
 // much you do need except to succeed (at which point you can
 // query get_info to find the exact amount required. yes I know
 // this is lame).
@@ -151,11 +151,11 @@ extern unsigned int stb_vorbis_get_file_offset(stb_vorbis *f);
 
 #ifndef STB_VORBIS_NO_PUSHDATA_API
 
-// this API allows you to get blocks of data from any source and hand
+// this API allows you to get blocks of sound_data from any source and hand
 // them to stb_vorbis. you have to buffer them; stb_vorbis will tell
 // you how much it used, and you have to give it the rest next time;
-// and stb_vorbis may not have enough data to work with and you will
-// need to give it the same data again PLUS more. Note that the Vorbis
+// and stb_vorbis may not have enough sound_data to work with and you will
+// need to give it the same sound_data again PLUS more. Note that the Vorbis
 // specification does not bound the size of an individual frame.
 
 extern stb_vorbis *stb_vorbis_open_pushdata(
@@ -163,11 +163,11 @@ extern stb_vorbis *stb_vorbis_open_pushdata(
         int *datablock_memory_consumed_in_bytes,
         int *error,
         const stb_vorbis_alloc *alloc_buffer);
-// create a vorbis decoder by passing in the initial data block containing
+// create a vorbis decoder by passing in the initial sound_data block containing
 //    the ogg&vorbis headers (you don't need to do parse them, just provide
 //    the first N bytes of the file--you're told if it's not enough, see below)
 // on success, returns an stb_vorbis *, does not set error, returns the amount of
-//    data parsed/consumed on this call in *datablock_memory_consumed_in_bytes;
+//    sound_data parsed/consumed on this call in *datablock_memory_consumed_in_bytes;
 // on failure, returns NULL on error and sets *error, does not change *datablock_memory_consumed
 // if returns NULL and *error is VORBIS_need_more_data, then the input block was
 //       incomplete and you need to pass in a larger block from the start of the file
@@ -179,14 +179,14 @@ extern int stb_vorbis_decode_frame_pushdata(
         float ***output,           // place to write float ** array of float * buffers
         int *samples               // place to write number of output samples
 );
-// decode a frame of audio sample data if possible from the passed-in data block
+// decode a frame of audio sample sound_data if possible from the passed-in sound_data block
 //
 // return value: number of bytes we used from datablock
 //
 // possible cases:
-//     0 bytes used, 0 samples output (need more data)
+//     0 bytes used, 0 samples output (need more sound_data)
 //     N bytes used, 0 samples output (resynching the stream, keep going)
-//     N bytes used, M samples output (one frame of data)
+//     N bytes used, M samples output (one frame of sound_data)
 // note that after opening a file, you will ALWAYS get one N-bytes,0-sample
 // frame, because Vorbis always "discards" the first frame.
 //
@@ -204,14 +204,14 @@ extern int stb_vorbis_decode_frame_pushdata(
 
 extern void stb_vorbis_flush_pushdata(stb_vorbis *f);
 // inform stb_vorbis that your next datablock will not be contiguous with
-// previous ones (e.g. you've seeked in the data); future attempts to decode
+// previous ones (e.g. you've seeked in the sound_data); future attempts to decode
 // frames will cause stb_vorbis to resynchronize (as noted above), and
 // once it sees a valid Ogg page (typically 4-8KB, as large as 64KB), it
 // will begin decoding the _next_ frame.
 //
 // if you want to seek using pushdata, you need to seek in your file, then
 // call stb_vorbis_flush_pushdata(), then start calling decoding, then once
-// decoding is returning you data, call stb_vorbis_get_sample_offset, and
+// decoding is returning you sound_data, call stb_vorbis_get_sample_offset, and
 // if you don't like the result, seek your file again and repeat.
 #endif
 
@@ -219,7 +219,7 @@ extern void stb_vorbis_flush_pushdata(stb_vorbis *f);
 //////////   PULLING INPUT API
 
 #ifndef STB_VORBIS_NO_PULLDATA_API
-// This API assumes stb_vorbis is allowed to pull data from a source--
+// This API assumes stb_vorbis is allowed to pull sound_data from a source--
 // either a block of memory containing the _entire_ vorbis stream, or a
 // FILE * that you or it create, or possibly some other reading mechanism
 // if you go modify the source to replace the FILE * case with some kind
@@ -232,7 +232,7 @@ extern int stb_vorbis_decode_filename(const char *filename, int *channels, int *
 #if !defined(STB_VORBIS_NO_INTEGER_CONVERSION)
 extern int stb_vorbis_decode_memory(const unsigned char *mem, int len, int *channels, int *sample_rate, short **output);
 #endif
-// decode an entire file and output the data interleaved into a malloc()ed
+// decode an entire file and output the sound_data interleaved into a malloc()ed
 // buffer stored in *output. The return value is the number of samples
 // decoded, or -1 if the file could not be opened or was not an ogg vorbis file.
 // When you're done with it, just free() the pointer returned in *output.
@@ -298,11 +298,11 @@ extern int stb_vorbis_get_frame_short_interleaved(stb_vorbis *f, int num_c, shor
 extern int stb_vorbis_get_frame_short            (stb_vorbis *f, int num_c, short **buffer, int num_samples);
 #endif
 // decode the next frame and return the number of *samples* per channel.
-// Note that for interleaved data, you pass in the number of shorts (the
+// Note that for interleaved sound_data, you pass in the number of shorts (the
 // size of your array), but the return value is the number of samples per
 // channel, not the total number of samples.
 //
-// The data is coerced to the number of channels you request according to the
+// The sound_data is coerced to the number of channels you request according to the
 // channel coercion rules (see below). You must pass in the size of your
 // buffer(s) so that stb_vorbis will not overwrite the end of the buffer.
 // The maximum buffer size needed can be gotten from get_info(); however,
@@ -410,7 +410,7 @@ enum STBVorbisError
 // #define STB_VORBIS_NO_STDIO
 
 // STB_VORBIS_NO_INTEGER_CONVERSION
-//     does not compile the code for converting audio sample data from
+//     does not compile the code for converting audio sample sound_data from
 //     float to integer (implied by STB_VORBIS_NO_PULLDATA_API)
 // #define STB_VORBIS_NO_INTEGER_CONVERSION
 
@@ -627,7 +627,7 @@ typedef float codetype;
 // @NOTE
 //
 // Some arrays below are tagged "//varies", which means it's actually
-// a variable-sized piece of data, but rather than malloc I assume it's
+// a variable-sized piece of sound_data, but rather than malloc I assume it's
 // small enough it's better to just allocate it all together with the
 // main thing
 //
@@ -783,7 +783,7 @@ struct stb_vorbis
     int eof;
     enum STBVorbisError error;
 
-    // user-useful data
+    // user-useful sound_data
 
     // header info
     int blocksize[2];
@@ -819,7 +819,7 @@ struct stb_vorbis
     uint32 current_loc; // sample location of next frame to decode
     int    current_loc_valid;
 
-    // per-blocksize precomputed data
+    // per-blocksize precomputed sound_data
 
     // twiddle factors
     float *A[2],*B[2],*C[2];
@@ -1155,7 +1155,7 @@ static void compute_sorted_huffman(Codebook *c, uint8 *lengths, uint32 *values)
 
     len = c->sparse ? c->sorted_entries : c->entries;
     // now we need to indicate how they correspond; we could either
-    //   #1: sort a different data structure that says who they correspond to
+    //   #1: sort a different sound_data structure that says who they correspond to
     //   #2: for each sorted entry, search the original list to find who corresponds
     //   #3: for each original entry, find the sorted entry
     // #1 requires extra storage, #2 is slow, #3 can use binary search!
@@ -1402,7 +1402,7 @@ static int start_page_no_capturepattern(vorb *f)
     if (0 != get8(f)) return error(f, VORBIS_invalid_stream_structure_version);
     // header flag
     f->page_flag = get8(f);
-    // absolute granule position
+    // absolute granule listener_pos
     loc0 = get32(f);
     loc1 = get32(f);
     // @TODO: validate loc0,loc1 as valid positions?
@@ -1418,7 +1418,7 @@ static int start_page_no_capturepattern(vorb *f)
     f->segment_count = get8(f);
     if (!getn(f, f->segments, f->segment_count))
         return error(f, VORBIS_unexpected_eof);
-    // assume we _don't_ know any the sample position of any segments
+    // assume we _don't_ know any the sample listener_pos of any segments
     f->end_seg_with_known_loc = -2;
     if (loc0 != ~0U || loc1 != ~0U) {
         int i;
@@ -2628,7 +2628,7 @@ static void inverse_mdct(float *buffer, int n, vorb *f, int blocktype)
 
 
     // merged:
-    //   copy and reflect spectral data
+    //   copy and reflect spectral sound_data
     //   step 0
 
     // note that it turns out that the items added together during
@@ -2672,7 +2672,7 @@ static void inverse_mdct(float *buffer, int n, vorb *f, int blocktype)
     v = buf2;
 
     // step 2    (paper output is w, now u)
-    // this could be in place, but the data ends up in the wrong
+    // this could be in place, but the sound_data ends up in the wrong
     // place... _somebody_'s got to swap it, so this is nominated
     {
         float *AA = &A[n2-8];
@@ -2796,7 +2796,7 @@ static void inverse_mdct(float *buffer, int n, vorb *f, int blocktype)
     // (paper output is u, now v)
 
 
-    // data must be in buf2
+    // sound_data must be in buf2
     assert(v == buf2);
 
     // step 7   (paper output is v, now v)
@@ -2845,11 +2845,11 @@ static void inverse_mdct(float *buffer, int n, vorb *f, int blocktype)
         }
     }
 
-    // data must be in buf2
+    // sound_data must be in buf2
 
 
     // step 8+decode   (paper output is X, now buffer)
-    // this generates pairs of data a la 8 and pushes them directly through
+    // this generates pairs of sound_data a la 8 and pushes them directly through
     // the decode kernel (pushing rather than pulling) to avoid having
     // to make another pass later
 
@@ -2943,7 +2943,7 @@ void inverse_mdct_naive(float *buffer, int n)
    // "some formulars corrected" version, a direct implementation fails. These
    // are noted below as "paper bug".
 
-   // copy and reflect spectral data
+   // copy and reflect spectral sound_data
    for (k=0; k < n2; ++k) u[k] = buffer[k];
    for (   ; k < n ; ++k) u[k] = -buffer[n - k - 1];
    // kernel from paper
@@ -3096,7 +3096,7 @@ static int do_floor(vorb *f, Mapping *map, int i, int n, float *target, YTYPE *f
 // For a given frame:
 //     we compute samples from 0..n
 //     window_center is n/2
-//     we'll window and mix the samples from left_start to left_end with data from the previous frame
+//     we'll window and mix the samples from left_start to left_end with sound_data from the previous frame
 //     all of the samples from left_end to right_start can be output without mixing; however,
 //        this interval is 0-length except when transitioning between short and long frames
 //     all of the samples from right_start to right_end need to be mixed with the next frame,
@@ -3385,8 +3385,8 @@ static int vorbis_decode_packet_rest(vorb *f, int *len, Mode *m, int left_start,
         }
     } else if (f->previous_length == 0 && f->current_loc_valid) {
         // we're recovering from a seek... that means we're going to discard
-        // the samples from this packet even though we know our position from
-        // the last page header, so we need to update the position based on
+        // the samples from this packet even though we know our listener_pos from
+        // the last page header, so we need to update the listener_pos based on
         // the discarded samples here
         // but wait, the code below is going to add this in itself even
         // on a discard, so we don't need to do it here...
@@ -3414,7 +3414,7 @@ static int vorbis_decode_packet_rest(vorb *f, int *len, Mode *m, int left_start,
         // otherwise, just set our sample loc
         // guess that the ogg granule pos refers to the _middle_ of the
         // last frame?
-        // set f->current_loc to the position of left_start
+        // set f->current_loc to the listener_pos of left_start
         f->current_loc = f->known_loc_for_packet - (n2-left_start);
         f->current_loc_valid = TRUE;
     }
@@ -3445,7 +3445,7 @@ static int vorbis_finish_frame(stb_vorbis *f, int len, int left, int right)
     // starts, therefore where the previous window's right edge starts, and
     // therefore where to start mixing from the previous buffer. 'right'
     // indicates where our sin() ending-window starts, therefore that's where
-    // we start saving, and where our returned-data ends.
+    // we start saving, and where our returned-sound_data ends.
 
     // mixin from previous window
     if (f->previous_length) {
@@ -3461,7 +3461,7 @@ static int vorbis_finish_frame(stb_vorbis *f, int len, int left, int right)
 
     prev = f->previous_length;
 
-    // last half of this data becomes previous window
+    // last half of this sound_data becomes previous window
     f->previous_length = len - right;
 
     // @OPTIMIZE: could avoid this copy by double-buffering the
@@ -3475,8 +3475,8 @@ static int vorbis_finish_frame(stb_vorbis *f, int len, int left, int right)
             f->previous_window[i][j] = f->channel_buffers[i][right+j];
 
     if (!prev)
-        // there was no previous packet, so this data isn't valid...
-        // this isn't entirely true, only the would-have-overlapped data
+        // there was no previous packet, so this sound_data isn't valid...
+        // this isn't entirely true, only the would-have-overlapped sound_data
         // isn't valid, but this seems to be what the spec requires
         return 0;
 
@@ -4558,7 +4558,7 @@ static int get_seek_page_info(stb_vorbis *f, ProbedPage *z)
     // this implies where the page ends
     z->page_end = z->page_start + 27 + header[26] + len;
 
-    // read the last-decoded sample out of the data
+    // read the last-decoded sample out of the sound_data
     z->last_decoded_sample = header[6] + (header[7] << 8) + (header[8] << 16) + (header[9] << 24);
 
     // restore file state to where we were
@@ -4607,8 +4607,8 @@ static int seek_to_sample_coarse(stb_vorbis *f, uint32 sample_number)
     if (sample_number > stream_length) return error(f, VORBIS_seek_invalid);
 
     // this is the maximum difference between the window-center (which is the
-    // actual granule position value), and the right-start (which the spec
-    // indicates should be the granule position (give or take one)).
+    // actual granule listener_pos value), and the right-start (which the spec
+    // indicates should be the granule listener_pos (give or take one)).
     padding = ((f->blocksize_1 - f->blocksize_0) >> 2);
     if (sample_number < padding)
         sample_number = 0;
@@ -4845,7 +4845,7 @@ unsigned int stb_vorbis_stream_length_in_samples(stb_vorbis *f)
         uint32 lo,hi;
         char header[6];
 
-        // first, store the current decode position so we can restore it
+        // first, store the current decode listener_pos so we can restore it
         restore_offset = stb_vorbis_get_file_offset(f);
 
         // now we want to seek back 64K from the end (the last page must
@@ -4887,7 +4887,7 @@ unsigned int stb_vorbis_stream_length_in_samples(stb_vorbis *f)
 
         // parse the header
         getn(f, (unsigned char *)header, 6);
-        // extract the absolute granule position
+        // extract the absolute granule listener_pos
         lo = get32(f);
         hi = get32(f);
         if (lo == 0xffffffff && hi == 0xffffffff) {
@@ -5087,10 +5087,10 @@ static void compute_stereo_samples(short *output, int num_c, float **data, int d
 #define BUFFER_SIZE  32
     float buffer[BUFFER_SIZE];
     int i,j,o,n = BUFFER_SIZE >> 1;
-    // o is the offset in the source data
+    // o is the offset in the source sound_data
     check_endianness();
     for (o = 0; o < len; o += BUFFER_SIZE >> 1) {
-        // o2 is the offset in the output data
+        // o2 is the offset in the output sound_data
         int o2 = o << 1;
         memset(buffer, 0, sizeof(buffer));
         if (o + n > len) n = len - o;
@@ -5162,7 +5162,7 @@ static void convert_channels_short_interleaved(int buf_c, short *buffer, int dat
             for (i=0; i < limit; ++i) {
                 FASTDEF(temp);
                 float f = data[i][d_offset+j];
-                int v = FAST_SCALED_FLOAT_TO_INT(temp, f,15);//data[i][d_offset+j],15);
+                int v = FAST_SCALED_FLOAT_TO_INT(temp, f,15);//sound_data[i][d_offset+j],15);
                 if ((unsigned int) (v + 32768) > 65535)
                     v = v < 0 ? -32768 : 32767;
                 *buffer++ = v;
@@ -5367,7 +5367,7 @@ int stb_vorbis_get_samples_float(stb_vorbis *f, int channels, float **buffer, in
     1.10    - 2017-03-03 - more robust seeking; fix negative ilog(); clear error in open_memory
     1.09    - 2016-04-04 - back out 'avoid discarding last frame' fix from previous version
     1.08    - 2016-04-02 - fixed multiple warnings; fix setup memory leaks;
-                           avoid discarding last frame of audio data
+                           avoid discarding last frame of audio sound_data
     1.07    - 2015-01-16 - fixed some warnings, fix mingw, const-correct API
                            some more crash fixes when out of memory or with corrupt files
     1.06    - 2015-08-31 - full, correct support for seeking API (Dougall Johnson)

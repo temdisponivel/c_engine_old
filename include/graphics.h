@@ -12,6 +12,7 @@
 #include <collections.h>
 #include "entities.h"
 #include "core.h"
+#include "audio.h"
 
 #define HANDLE_NONE 0
 
