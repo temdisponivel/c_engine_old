@@ -538,21 +538,205 @@ void update_wire_frame() {
     }
 }
 
-int main(void) {
+const char *vertex_shader_code =
+        "#version 150\n"
+        "in vec3 position;\n"
+        "in vec2 uv_in;\n"
+        "out vec2 uv;\n"
+        "void main() {\n"
+        "gl_Position = vec4(position, 1);\n"
+        "uv = uv_in;\n"
+        "}\n";
 
+const char *fragment_shader_code =
+        "#version 150\n"
+        "out vec4 color;\n"
+        "in vec2 uv;\n"
+        "uniform sampler2D tex;\n"
+        "void main() {\n"
+        "color = texture(tex, uv);\n"
+        "}\n";
+
+int main(void) {
+/*
     // TODO: Read this from file
     engine_params_t params;
     params.window_title = (char *) "My game!!!";
     params.window_size = glm::ivec2(1024, 768);
-    params.update_callback = &update_wire_frame;
+    params.update_callback = &update_music;
     params.gl_major_version = 4;
     params.gl_minor_version = 0;
 
     prepare(params);
 
-    setup_wire_frame();
+    music_t *music = create_music("data/sounds/test_music.ogg");
+    source = create_audio_source();
+    set_music_on_source(source, music);
+    start_audio_source(source);
 
     loop();
 
     release();
+    */
+
+    GLfloat quad[18] = {
+            -.5f, .5f, 0,
+            -.5f, -.5f, 0,
+            .5f, .5f, 0,
+            .5f, -.5f, 0
+    };
+
+    GLfloat uv[12] = {
+            0, 1,
+            0, 0,
+            1, 1,
+            1, 0,
+    };
+
+    GLint indices[6] = {
+            0,
+            1,
+            2,
+            2,
+            3,
+            1
+    };
+
+    if (!glfwInit()) {
+        return -1;
+    }
+
+    glfwWindowHint(GLFW_VERSION_MAJOR, 4);
+    glfwWindowHint(GLFW_VERSION_MINOR, 4);
+
+    GLFWwindow *window = glfwCreateWindow(800, 600, "Window", null, null);
+
+    if (window == null) {
+        return -2;
+    }
+
+    glfwMakeContextCurrent(window);
+
+    glewInit();
+
+    glClearColor(1, 0, 0, 0);
+
+    uint vao;
+    glGenVertexArrays(1, &vao);
+    glBindVertexArray(vao);
+
+    MESSAGE("OK 1");
+
+    uint vbo;
+    glGenBuffers(1, &vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferData(
+            GL_ARRAY_BUFFER,
+            sizeof(GLfloat) * 18,
+            quad,
+            GL_STATIC_DRAW
+    );
+    CHECK_GL_ERROR();
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, null);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    uint vbo_uv;
+    glGenBuffers(1, &vbo_uv);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo_uv);
+    glBufferData(
+            GL_ARRAY_BUFFER,
+            sizeof(GLfloat) * 12,
+            uv,
+            GL_STATIC_DRAW
+    );
+    CHECK_GL_ERROR();
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, null);
+
+    MESSAGE("OK 3");
+
+    uint indice_vbo;
+    glGenBuffers(1, &indice_vbo);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indice_vbo);
+    glBufferData(
+            GL_ELEMENT_ARRAY_BUFFER,
+            sizeof(GLint) * 6,
+            indices,
+            GL_STATIC_DRAW
+    );
+
+    glBindVertexArray(0);
+
+    uint vertex = glCreateShader(GL_VERTEX_SHADER);
+    uint fragment = glCreateShader(GL_FRAGMENT_SHADER);
+
+    MESSAGE("OK 4");
+
+    glShaderSource(vertex, 1, &vertex_shader_code, null);
+    glCompileShader(vertex);
+    CHECK_SHADER_COMPILE_STATUS(vertex, vertex_shader_code);
+
+    MESSAGE("OK 5");
+
+    glShaderSource(fragment, 1, &fragment_shader_code, null);
+    glCompileShader(fragment);
+    CHECK_SHADER_COMPILE_STATUS(fragment, fragment_shader_code);
+
+    MESSAGE("OK 5");
+
+    uint shader = glCreateProgram();
+    glAttachShader(shader, vertex);
+    glAttachShader(shader, fragment);
+
+    glBindAttribLocation(shader, 0, "position");
+    glBindAttribLocation(shader, 1, "uv");
+
+    glLinkProgram(shader);
+    CHECK_GL_ERROR();
+
+    MESSAGE("OK 6");
+
+    glUseProgram(shader);
+
+    stbi_set_flip_vertically_on_load(true);
+    int width, height, channels;
+    stbi_uc *tex_data = stbi_load("data/textures/the_witness.png", &width, &height, &channels, 4);
+
+    uint texture;
+    glGenTextures(1, &texture);
+    glBindTexture(GL_TEXTURE_2D, texture);
+
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, tex_data);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    CHECK_GL_ERROR();
+
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, texture);
+    uint tex_uniform = glGetUniformLocation(shader, "tex");
+    glUniform1i(tex_uniform, 1);
+
+    CHECK_GL_ERROR();
+
+    while (!glfwWindowShouldClose(window)) {
+        glClear(GL_COLOR_BUFFER_BIT);
+
+
+        glBindVertexArray(vao);
+        glEnableVertexAttribArray(0);
+        glEnableVertexAttribArray(1);
+        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, null);
+        glBindVertexArray(0);
+        CHECK_GL_ERROR();
+
+
+        glfwSwapBuffers(window);
+        glfwPollEvents();
+    }
 }
+
+
