@@ -3,6 +3,7 @@ add audio
     fix 3D problems
     add properties like duration, set position, etc
 
+full obj file loading (including submesh, materials, faces, etc)
 
 make a asset catalog to be used as a database in order to load each asset only once
 

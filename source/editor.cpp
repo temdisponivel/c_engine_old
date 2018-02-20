@@ -17,6 +17,8 @@ void setup_editor(camera_t *editor_camera) {
 }
 
 void update_editor_camera() {
+    //TODO: CLEANUP
+
     camera_t *cam = state->camera_state.editor_camera;
     update_transform_matrix(cam->entity->transform);
 
@@ -29,8 +31,6 @@ void update_editor_camera() {
 
     glm::vec2 mouse_movement = glm::vec3(mouse_delta.x, mouse_delta.y, 0) * CAM_MOVEMENT_VELOCITY;
     if (is_mouse_button_down(MOUSE_BUTTON_MIDDLE)) {
-
-        MESSAGEF("%f %f", mouse_movement.x, mouse_movement.y);
 
         glm::vec3 right = -get_right(cam->entity->transform) * mouse_movement.x;
         glm::vec3 up = get_up(cam->entity->transform) * mouse_movement.y;
@@ -51,6 +51,10 @@ void update_editor_camera() {
 
         glm::quat current_rot = cam->entity->transform->rotation;
 
-        cam->entity->transform->rotation = glm::lerp(cam->entity->transform->rotation, glm::quat(glm::vec3(y, x, 0)), get_dt() * 30);
+        cam->entity->transform->rotation = glm::lerp(
+                cam->entity->transform->rotation,
+                glm::quat(glm::vec3(y, x, 0)),
+                get_dt() * 30
+        );
     }
 }
