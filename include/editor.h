@@ -12,6 +12,7 @@
 typedef struct editor_camera_state {
     camera_t *editor_camera;
     glm::vec2 last_mouse_pos;
+    glm::vec2 acumulated_mouse_rotation;
 } editor_camera_state_t;
 
 typedef struct editor_state {

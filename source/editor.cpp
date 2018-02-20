@@ -13,6 +13,7 @@ void setup_editor(camera_t *editor_camera) {
     state = (editor_state_t *) memalloc(sizeof(editor_state_t));
     state->camera_state.editor_camera = editor_camera;
     state->camera_state.last_mouse_pos = get_mouse_screen_pos();
+    state->camera_state.acumulated_mouse_rotation = glm::vec2(0, 0);
 }
 
 void update_editor_camera() {
@@ -44,11 +45,12 @@ void update_editor_camera() {
 
     if (is_mouse_button_down(MOUSE_BUTTON_RIGHT)) {
         mouse_movement = -mouse_movement * get_dt();
+        state->camera_state.acumulated_mouse_rotation += mouse_movement;
+        float x = state->camera_state.acumulated_mouse_rotation.x;
+        float y = state->camera_state.acumulated_mouse_rotation.y;
 
         glm::quat current_rot = cam->entity->transform->rotation;
 
-        glm::quat desired_rotation = glm::quat(glm::vec3(mouse_movement.y, mouse_movement.y, 0));
-
-        cam->entity->transform->rotation = current_rot * desired_rotation;//, get_dt() * 10);
+        cam->entity->transform->rotation = glm::quat(glm::vec3(y, x, 0));
     }
 }
