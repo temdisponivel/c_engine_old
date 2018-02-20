@@ -51,6 +51,6 @@ void update_editor_camera() {
 
         glm::quat current_rot = cam->entity->transform->rotation;
 
-        cam->entity->transform->rotation = glm::quat(glm::vec3(y, x, 0));
+        cam->entity->transform->rotation = glm::lerp(cam->entity->transform->rotation, glm::quat(glm::vec3(y, x, 0)), get_dt() * 30);
     }
 }
