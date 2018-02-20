@@ -56,7 +56,7 @@ void update_transform_matrix(transform_t *transform) {
 }
 
 glm::vec3 get_forward(transform_t *transform) {
-    return transform->rotation * world_forward();
+    return glm::normalize(transform->rotation * world_forward());
 }
 
 glm::vec3 get_backwards(transform_t *transform) {
@@ -73,7 +73,7 @@ void set_backwards(transform_t *transform, glm::vec3 backwards) {
 }
 
 glm::vec3 get_up(transform_t *transform) {
-    return transform->rotation * world_up();
+    return glm::normalize(transform->rotation * world_up());
 }
 
 glm::vec3 get_down(transform_t *transform) {
@@ -90,7 +90,7 @@ void set_down(transform_t *transform, glm::vec3 down) {
 }
 
 glm::vec3 get_right(transform_t *transform) {
-    return transform->rotation * world_right();
+    return glm::normalize(transform->rotation * world_right());
 }
 
 glm::vec3 get_left(transform_t *transform) {

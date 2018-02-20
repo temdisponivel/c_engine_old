@@ -1326,7 +1326,7 @@ void update_camera_matrix(camera_t *camera) {
     // makes the forward vector into a screen_position in front of the camera
     glm::vec3 center = trans->position + (forward_dir * 1000000.f);
 
-    camera->view = glm::lookAt(trans->position, center, world_up());
+    camera->view = glm::lookAt(trans->position, center, get_up(trans));
     camera->_matrix = camera->projection * camera->view;
 }
 
