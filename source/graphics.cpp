@@ -257,7 +257,7 @@ model_t *create_model(const char *model_file_path) {
     ENSURE(file != null);
 
     while (fscanf(file, "%s", line_buffer) != EOF) {
-        if (strcmp(line_buffer, "vp") == 0) {
+        if (strcmp(line_buffer, "v") == 0) {
             float x, y, z;
             if (fscanf(file, "%f %f %f\n", &x, &y, &z)) {
                 add<float>(positions, x);
@@ -509,7 +509,7 @@ void destroy_mesh(mesh_t *mesh) {
     memfree(mesh);
 }
 
-shader_t *create_shader(
+shader_t create_shader(
         const char *shader_code,
         SHADER_TYPE type
 ) {
@@ -527,17 +527,15 @@ shader_t *create_shader(
 
     CHECK_SHADER_COMPILE_STATUS(handle, shader_code);
 
-    shader_t *shader = (shader_t *) memalloc(sizeof(shader_t));
-    shader->handle = handle;
-    shader->type = type;
+    shader_t shader;
+    shader.handle = handle;
+    shader.type = type;
     return shader;
 }
 
-void destroy_shader(shader_t *shader) {
-    glDeleteShader(shader->handle);
+void destroy_shader(shader_t shader) {
+    glDeleteShader(shader.handle);
     CHECK_GL_ERROR();
-
-    memfree(shader);
 }
 
 shader_program_t *create_shader_program(
@@ -1132,7 +1130,7 @@ void draw_renderer(mesh_renderer_t *renderer) {
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, HANDLE_NONE);
         CHECK_GL_ERROR();
     } else {
-        glDrawArrays(GL_TRIANGLES, 0, mesh->model->positions->length);
+        glDrawArrays(GL_TRIANGLES, 0, mesh->model->positions->length / 3);
         CHECK_GL_ERROR();
     }
 

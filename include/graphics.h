@@ -461,9 +461,9 @@ mesh_t *create_mesh(model_t *model);
 
 void destroy_mesh(mesh_t *mesh);
 
-shader_t *create_shader(const char *shader_code, SHADER_TYPE type);
+shader_t create_shader(const char *shader_code, SHADER_TYPE type);
 
-void destroy_shader(shader_t *shader);
+void destroy_shader(shader_t shader);
 
 shader_program_t *create_shader_program(
         shader_t vertex_shader,

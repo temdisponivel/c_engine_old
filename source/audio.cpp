@@ -5,6 +5,8 @@
 #include <utilities.h>
 #include "audio.h"
 
+#include <stb_vorbis.c>
+
 static audio_state_t *audio_state;
 
 audio_state_t get_audio_state() {

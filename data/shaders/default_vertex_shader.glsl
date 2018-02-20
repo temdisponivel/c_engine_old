@@ -10,14 +10,14 @@ in vec3 vertex_color;
 in vec3 vertex_normal;
 in vec2 vertex_texture_coord;
 
-out vec3 v_pos;
-out vec3 v_color;
-out vec2 v_uv;
+out vec3 pos;
+out vec3 color;
+out vec2 uv;
 
 void main(void) {
-    gl_Position = PROJECTION * VIEW * MODEL * vec4(vertex_position, 1.0);
+    gl_Position = MVP * vec4(vertex_position, 1.0);
 
-    v_color = vertex_color;// vec3(1, 1, 1);
-    v_uv = vertex_texture_coord;
-    v_pos = vertex_position;
+    color = vertex_color;// vec3(1, 1, 1);
+    uv = vertex_texture_coord;
+    pos = vertex_position;
 }

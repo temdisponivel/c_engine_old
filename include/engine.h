@@ -30,12 +30,13 @@
 #include <string>
 #include <cstdlib>
 #include <log.h>
-#define STB_VORBIS_HEADER_ONLY
-#include <stb_vorbis.c>
 #include <stb_image.h>
 #include <memory.h>
 #include <al/al.h>
 #include <al/alc.h>
+
+#define STB_VORBIS_HEADER_ONLY
+#include <stb_vorbis.c>
 
 typedef int8_t byte;
 
