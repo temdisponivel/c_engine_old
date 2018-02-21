@@ -25,7 +25,7 @@ void create_scene() {
     char *fragment_shader_code = read_file_text("data/shaders/default_fragment_shader.glsl");
     shader_t fragment = create_shader(fragment_shader_code, FRAGMENT_SHADER);
 
-    shader = create_shader_program(
+    shader = create_shader_program_ex(
             vertex,
             fragment,
             {},
@@ -94,6 +94,7 @@ int main() {
 
     loop();
 
+    release_editor();
     release();
 
     return 1;

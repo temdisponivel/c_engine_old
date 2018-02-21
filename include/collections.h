@@ -44,6 +44,8 @@ bool null_or_empty(list<T> *list);
 
 LIST_TEMPLATE
 list<T> *create_list(uint capacity) {
+    capacity = (uint) fmaxf(capacity, 1);
+
     list<T> *list = (struct list<T> *) memalloc(sizeof(struct list<T>));
     list->items = (T *) memalloc(sizeof(T) * capacity);
     list->capacity = capacity;

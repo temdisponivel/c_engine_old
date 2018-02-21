@@ -16,10 +16,72 @@ void setup_editor(camera_t *editor_camera) {
     state->camera_state.editor_camera = editor_camera;
     state->camera_state.last_mouse_pos = get_mouse_screen_pos();
     state->camera_state.acumulated_mouse_rotation = glm::vec2(0, 0);
+
+    shader_t vertex, fragment;
+    bool loaded = create_shaders_from_file(
+            "data/shaders/editor/editor_grid_vertex.glsl",
+            "data/shaders/editor/editor_grid_frag.glsl",
+            null,
+            &vertex,
+            &fragment,
+            null
+    );
+
+    ENSURE(loaded);
+
+    shader_program_t *program = create_shader_program(
+            vertex,
+            fragment,
+            {}
+    );
+
+    model_t *quad = create_quad(glm::vec3(0, 0, 0), 500.f);
+    mesh_t *quad_mesh = create_mesh(quad);
+
+    list<uniform_definition_t> *empty = create_list<uniform_definition_t>(1);
+    material_t *material = create_material(program, empty);
+    material->cull_func = CULL_DISABLED;
+    destroy_list(empty);
+
+    mesh_renderer_t *renderer = create_mesh_renderer(material, quad_mesh);
+    //look_at(renderer->entity->transform, world_up());
+
+    state->scene_state.grid_quad = renderer;
+}
+
+void release_editor() {
+    mesh_renderer_t *grid_renderer = state->scene_state.grid_quad;
+
+    destroy_shader(grid_renderer->material->shader->vertex_shader);
+    destroy_shader(grid_renderer->material->shader->fragment_shader);
+    destroy_shader_program(grid_renderer->material->shader);
+
+    destroy_material(grid_renderer->material);
+
+    destroy_model(grid_renderer->mesh->model);
+    destroy_mesh(grid_renderer->mesh);
+
+    destroy_mesh_renderer(grid_renderer);
+
+    memfree(state);
 }
 
 void validate_camera_set_commands(camera_t *camera) {
-
+    if (is_key_down(KEY_LEFT_CONTROL)) {
+        if (is_key_pressed(KEY_KP_2) || is_key_pressed(KEY_2)) {
+            look_at(camera->entity->transform, world_backwards());
+        } else if (is_key_pressed(KEY_KP_4) || is_key_pressed(KEY_4)) {
+            look_at(camera->entity->transform, world_left());
+        } else if (is_key_pressed(KEY_KP_8) || is_key_pressed(KEY_8)) {
+            look_at(camera->entity->transform, world_forward());
+        } else if (is_key_pressed(KEY_KP_6) || is_key_pressed(KEY_6)) {
+            look_at(camera->entity->transform, world_right());
+        } else if (is_key_pressed(KEY_KP_5) || is_key_pressed(KEY_5)) {
+            look_at(camera->entity->transform, world_down());
+        } else if (is_key_pressed(KEY_SLASH) || is_key_pressed(KEY_KP_DIVIDE)) {
+            look_at(camera->entity->transform, world_up());
+        }
+    }
 }
 
 float get_lerp_delta() {

@@ -461,14 +461,31 @@ mesh_t *create_mesh(model_t *model);
 
 void destroy_mesh(mesh_t *mesh);
 
+model_t *create_quad(glm::vec3 center, float diameter);
+
 shader_t create_shader(const char *shader_code, SHADER_TYPE type);
 
 void destroy_shader(shader_t shader);
 
+bool create_shaders_from_file(
+        const char *vertex_shader_file_path,
+        const char *fragment_shader_file_path,
+        const char *geometry_shader_file_path,
+        shader_t *vertex,
+        shader_t *fragment,
+        shader_t *geometry
+);
+
 shader_program_t *create_shader_program(
         shader_t vertex_shader,
         shader_t fragment_shader,
-        shader_t geomtry_shader,
+        shader_t geometry_shader
+);
+
+shader_program_t *create_shader_program_ex(
+        shader_t vertex_shader,
+        shader_t fragment_shader,
+        shader_t geometry_shader,
         const char *vertex_position_name,
         const char *vertex_color_name,
         const char *vertex_tex_coord_name,
@@ -484,7 +501,7 @@ void create_and_add_uniform(
 
 material_t *create_material(
         shader_program_t *shader,
-        list<uniform_definition_t> *uniform_definitions
+        const list<uniform_definition_t> *uniform_definitions
 );
 
 void destroy_material(material_t *material);

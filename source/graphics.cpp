@@ -50,7 +50,7 @@ image_t *create_image_full(
 
 image_t *create_image(const char *image_file_path) {
     int width, height, channels;
-    stbi_uc *data = stbi_load(image_file_path, &width, &height, &channels, 4 /* TEXTURE_FORMAT::TEXTURE_RGBA */);
+    stbi_uc *data = stbi_load(image_file_path, &width, &height, &channels, 0 /* TEXTURE_FORMAT::TEXTURE_RGBA */);
 
 #if DEV
     if (data == null) {
@@ -242,6 +242,26 @@ void buff_texture_config_to_gl(texture_t *texture) {
     glBindTexture(GL_TEXTURE_2D, HANDLE_NONE);
 }
 
+model_t *create_model(
+        list<float> *positions,
+        list<float> *colors,
+        list<float> *tex_coords,
+        list<float> *normals,
+        list<int> *indices
+) {
+    ENSURE(positions->length > 0);
+
+    model_t *model = (model_t *) memalloc(sizeof(model_t));
+
+    model->positions = positions;
+    model->colors = colors;
+    model->tex_coords = tex_coords;
+    model->normals = normals;
+    model->indices = indices;
+
+    return model;
+}
+
 model_t *create_model(const char *model_file_path) {
     // TODO: optimize this!!!
 
@@ -293,17 +313,7 @@ model_t *create_model(const char *model_file_path) {
     }
     fclose(file);
 
-    ENSURE(positions->length > 0);
-
-    model_t *model = (model_t *) memalloc(sizeof(model_t));
-
-    model->positions = positions;
-    model->colors = colors;
-    model->tex_coords = tex_coords;
-    model->normals = normals;
-    model->indices = indices;
-
-    return model;
+    return create_model(positions, colors, tex_coords, normals, indices);
 }
 
 void destroy_model(model_t *mesh) {
@@ -509,6 +519,43 @@ void destroy_mesh(mesh_t *mesh) {
     memfree(mesh);
 }
 
+void add_to_list(list<float> *list, glm::vec3 vec) {
+    add(list, vec.x);
+    add(list, vec.y);
+    add(list, vec.z);
+}
+
+model_t *create_quad(glm::vec3 center, float diameter) {
+    glm::vec3 top_left = center + glm::vec3(-diameter, 0, -diameter);
+    glm::vec3 top_right = center + glm::vec3(diameter, 0, -diameter);
+    glm::vec3 bottom_left = center + glm::vec3(-diameter, 0, diameter);
+    glm::vec3 bottom_right = center + glm::vec3(diameter, 0, diameter);
+
+    list<float> *positions = create_list<float>(4 * 3);
+    list<float> *colors = create_list<float>(1);
+    list<float> *tex_coords = create_list<float>(1);
+    list<float> *normals = create_list<float>(1);
+    list<int> *indices = create_list<int>(6);
+
+    add_to_list(positions, top_left);
+    add_to_list(positions, bottom_left);
+    add_to_list(positions, top_right);
+    add_to_list(positions, top_right);
+    add_to_list(positions, bottom_left);
+    add_to_list(positions, bottom_right);
+
+/*
+    add(indices, 0);
+    add(indices, 2);
+    add(indices, 1);
+    add(indices, 1);
+    add(indices, 2);
+    add(indices, 3);*/
+
+    model_t *model = create_model(positions, colors, tex_coords, normals, indices);
+    return model;
+}
+
 shader_t create_shader(
         const char *shader_code,
         SHADER_TYPE type
@@ -538,7 +585,49 @@ void destroy_shader(shader_t shader) {
     CHECK_GL_ERROR();
 }
 
+bool create_shaders_from_file(
+        const char *vertex_shader_file_path,
+        const char *fragment_shader_file_path,
+        const char *geometry_shader_file_path,
+        shader_t *vertex,
+        shader_t *fragment,
+        shader_t *geometry
+) {
+    ENSURE(vertex_shader_file_path != null);
+    ENSURE(fragment_shader_file_path != null);
+
+    char *vertex_shader_code = read_file_text(vertex_shader_file_path);
+    *vertex = create_shader(vertex_shader_code, VERTEX_SHADER);
+    free_file_content(vertex_shader_code);
+
+    char *fragment_shader_code = read_file_text(fragment_shader_file_path);
+    *fragment = create_shader(fragment_shader_code, FRAGMENT_SHADER);
+    free_file_content(fragment_shader_code);
+
+    if (geometry_shader_file_path != null) {
+        char *geometry_shader_code = read_file_text(geometry_shader_file_path);
+        *geometry = create_shader(geometry_shader_code, GEOMETRY_SHADER);
+        free_file_content(geometry_shader_code);
+    }
+}
+
 shader_program_t *create_shader_program(
+        shader_t vertex_shader,
+        shader_t fragment_shader,
+        shader_t geometry_shader
+) {
+    return create_shader_program_ex(
+            vertex_shader,
+            fragment_shader,
+            geometry_shader,
+            VERTEX_POSITION_ATTRIBUTE_NAME,
+            VERTEX_COLOR_ATTRIBUTE_NAME,
+            VERTEX_TEXTURE_COORD_ATTRIBUTE_NAME,
+            VERTEX_NORMAL_ATTRIBUTE_NAME
+    );
+}
+
+shader_program_t *create_shader_program_ex(
         shader_t vertex_shader,
         shader_t fragment_shader,
         shader_t geometry_shader,
@@ -646,13 +735,13 @@ void create_and_add_uniform(
 
 material_t *create_material(
         shader_program_t *shader,
-        list<uniform_definition_t> *uniform_definitions
+        const list<uniform_definition_t> *uniform_definitions
 ) {
     material_t *material = (material_t *) memalloc(sizeof(material_t));
     list<uniform_t *> *uniforms = create_list<uniform_t *>(uniform_definitions->length);
 
     material->shader = shader;
-    material->depth_func = COMPARE_FUNCTIONS::COMPARE_DEFAULT;
+    material->depth_func = COMPARE_FUNCTIONS::COMPARE_LESS;
     material->cull_func = CULL_FUNCTIONS::CULL_DEFAULT;
     material->shader = shader;
     material->uniforms = uniforms;
@@ -1006,7 +1095,7 @@ CULL_FUNCTIONS get_default_cull_func() {
 
 depth_settings_t get_default_depth_settings() {
     depth_settings_t settings;
-    settings.compare_func = COMPARE_LESS;
+    settings.compare_func = COMPARE_DEFAULT;
     settings.mask = DEPTH_BUFFER_DISABLED;
     return settings;
 }
