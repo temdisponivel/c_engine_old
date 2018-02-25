@@ -130,9 +130,9 @@ void destroy_texture(texture_t *texture) {
 texture_config_t get_default_texture_config() {
     texture_config_t default_config = {};
 
-    default_config.texture_wrap_r = TEX_WRAP_MIRRORED_REPEAT;
-    default_config.texture_wrap_s = TEX_WRAP_MIRRORED_REPEAT;
-    default_config.texture_wrap_t = TEX_WRAP_MIRRORED_REPEAT;
+    default_config.texture_wrap_r = TEX_WRAP_CLAMP_TO_EDGE;
+    default_config.texture_wrap_s = TEX_WRAP_CLAMP_TO_EDGE;
+    default_config.texture_wrap_t = TEX_WRAP_CLAMP_TO_EDGE;
 
     default_config.texture_min_filter = TEX_MIN_FILTER_NEAREST;
     default_config.texture_mag_filter = TEX_MAG_FILTER_NEAREST;
@@ -299,7 +299,12 @@ list<model_t *> *create_model_from_obj_file(const char *model_file_path) {
             add(indices, (int) mesh.Indices[k]);
         }
 
-        add(models, create_model(positions, colors, tex_coords, normals, indices));
+        // TODO: CLEANUP
+        model_t *model = create_model(positions, colors, tex_coords, normals, indices);
+        char *name = (char *) memalloc(mesh.MeshMaterial.name.size() * sizeof(char));
+        strcpy(name, mesh.MeshMaterial.name.c_str());
+        model->material_name = name;
+        add(models, model);
     }
 
     return models;
@@ -352,7 +357,7 @@ void buff_vbo(
     CHECK_GL_ERROR();
 }
 
-mesh_t *create_mesh(model_t *model) {
+mesh_t *create_mesh(model_t *model, material_t *material) {
     uint vao;
 
     uint indices_vbo = 0;
@@ -473,6 +478,7 @@ mesh_t *create_mesh(model_t *model) {
     mesh->vertex_color_handle = color_vbo;
     mesh->vertex_tex_coord_handle = tex_coord_vbo;
     mesh->vertex_normal_handle = normal_vbo;
+    mesh->material = material;
 
     return mesh;
 }
@@ -1165,34 +1171,39 @@ void use_material(material_t *material) {
     buff_uniforms(material->uniforms);
 }
 
+void draw_renderer(mesh_renderer_t *renderer) {
+    prepare_to_draw(renderer);
+    for (int i = 0; i < renderer->meshs->length; ++i) {
+        draw_mesh(renderer->meshs->items[i]);
+    }
+}
+
 void prepare_to_draw(mesh_renderer_t *renderer) {
     // TODO: maybe flag this as already prepare to prevent preparing unnecessarily?!
     update_transform_matrix(renderer->entity->transform);
 
-    material_t *material = renderer->material;
+    for (int i = 0; i < renderer->meshs->length; ++i) {
+        material_t *material = renderer->meshs->items[i]->material;
 
-    // set mesh matrices
-    set_uniform_matrix(material, "MODEL", renderer->entity->transform->_matrix);
+        // set mesh matrices
+        set_uniform_matrix(material, "MODEL", renderer->entity->transform->_matrix);
 
-    glm::mat4 mvp = gl_state->current_camera->_matrix * renderer->entity->transform->_matrix;
-    set_uniform_matrix(material, "MVP", mvp);
-
-    use_material(material);
+        glm::mat4 mvp = gl_state->current_camera->_matrix * renderer->entity->transform->_matrix;
+        set_uniform_matrix(material, "MVP", mvp);
+    }
 }
 
-void draw_renderer_with_material(mesh_renderer_t *renderer, material_t *material) {
-    material_t *old_material = renderer->material;
-    renderer->material = material;
-    draw_renderer(renderer);
-    renderer->material = old_material;
+void draw_mesh_with_material(mesh_t *mesh, material_t *material) {
+    material_t *old_material = mesh->material;
+    mesh->material = material;
+    draw_mesh(mesh);
+    mesh->material = old_material;
 }
 
-void draw_renderer(mesh_renderer_t *renderer) {
-    prepare_to_draw(renderer);
-
-    mesh_t *mesh = renderer->mesh;
-
+void draw_mesh(mesh_t *mesh) {
     ENSURE(mesh != null);
+
+    use_material(mesh->material);
 
     glBindVertexArray(mesh->vao_handle);
     CHECK_GL_ERROR();
@@ -1285,11 +1296,16 @@ void draw_renderers(list<mesh_renderer_t *> *renderers) {
     }
 }
 
-mesh_renderer_t *create_mesh_renderer(material_t *material, mesh_t *mesh) {
+mesh_renderer_t *create_mesh_renderer(mesh_t *mesh) {
+    list<mesh_t *> *meshs = create_list<mesh_t *>(1);
+    add(meshs, mesh);
+    return create_mesh_renderer(meshs);
+}
+
+mesh_renderer_t *create_mesh_renderer(list<mesh_t *> *meshs) {
     mesh_renderer_t *renderer = (mesh_renderer_t *) memalloc(sizeof(mesh_renderer_t));
 
-    renderer->material = material;
-    renderer->mesh = mesh;
+    renderer->meshs = meshs;
     renderer->entity = create_entity(BUILT_IN_ENTITIES::MESH_RENDERER, renderer);
     renderer->should_be_drawn = true;
     renderer->layer_mask = 1 << 0;
@@ -1505,8 +1521,8 @@ void clear_current_view_port(CLEAR_MASK clear_mask) {
 
 void clear_view_port(view_port_t view_port, CLEAR_MASK clear_mask) {
     view_port_t absolute = get_view_port_absolute(view_port);
-    glm::ivec2 pos = absolute .position;
-    glm::ivec2 size = absolute .size;
+    glm::ivec2 pos = absolute.position;
+    glm::ivec2 size = absolute.size;
 
     // TODO: maybe validate if the viewport is fullscreen before enabling scissors test?!
     // Only clear the view-port, not the whole screen
@@ -1624,7 +1640,7 @@ void set_stencil_settings(stencil_settings_t settings) {
     if (current_settings.compare_func != settings.compare_func ||
         current_settings.reference_value != settings.reference_value ||
         current_settings.stencil_func_mask != settings.stencil_func_mask
-    ) {
+            ) {
         if (settings.compare_func == COMPARE_DISABLED) {
             glDisable(GL_STENCIL_TEST);
             CHECK_GL_ERROR();

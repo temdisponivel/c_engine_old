@@ -17,6 +17,9 @@
 // Math.h - STD math Library
 #include <math.h>
 
+// Print progress to console while loading (large models)
+//#define OBJL_CONSOLE_OUTPUT
+
 // Namespace: OBJL
 //
 // Description: The namespace that holds eveyrthing that
@@ -138,6 +141,47 @@ namespace objl
         Vector2 TextureCoordinate;
     };
 
+    struct Material
+    {
+        Material()
+        {
+            name;
+            Ns = 0.0f;
+            Ni = 0.0f;
+            d = 0.0f;
+            illum = 0;
+        }
+
+        // Material Name
+        std::string name;
+        // Ambient Color
+        Vector3 Ka;
+        // Diffuse Color
+        Vector3 Kd;
+        // Specular Color
+        Vector3 Ks;
+        // Specular Exponent
+        float Ns;
+        // Optical Density
+        float Ni;
+        // Dissolve
+        float d;
+        // Illumination
+        int illum;
+        // Ambient Texture Map
+        std::string map_Ka;
+        // Diffuse Texture Map
+        std::string map_Kd;
+        // Specular Texture Map
+        std::string map_Ks;
+        // Specular Hightlight Map
+        std::string map_Ns;
+        // Alpha Texture Map
+        std::string map_d;
+        // Bump Map
+        std::string map_bump;
+    };
+
     // Structure: Mesh
     //
     // Description: A Simple Mesh Object that holds
@@ -155,11 +199,15 @@ namespace objl
             Vertices = _Vertices;
             Indices = _Indices;
         }
-
+        // Mesh Name
+        std::string MeshName;
         // Vertex List
         std::vector<Vertex> Vertices;
         // Index List
         std::vector<unsigned int> Indices;
+
+        // Material
+        Material MeshMaterial;
     };
 
     // Namespace: Math
@@ -372,18 +420,49 @@ namespace objl
             std::vector<std::string> MeshMatNames;
 
             bool listening = false;
+            std::string meshname;
 
             Mesh tempMesh;
+
+#ifdef OBJL_CONSOLE_OUTPUT
+            const unsigned int outputEveryNth = 1000;
+            unsigned int outputIndicator = outputEveryNth;
+#endif
 
             std::string curline;
             while (std::getline(file, curline))
             {
+#ifdef OBJL_CONSOLE_OUTPUT
+                if ((outputIndicator = ((outputIndicator + 1) % outputEveryNth)) == 1)
+                {
+                    if (!meshname.empty())
+                    {
+                        std::cout
+                                << "\r- " << meshname
+                                << "\t| vertices > " << Positions.size()
+                                << "\t| texcoords > " << TCoords.size()
+                                << "\t| normals > " << Normals.size()
+                                << "\t| triangles > " << (Vertices.size() / 3)
+                                << (!MeshMatNames.empty() ? "\t| material: " + MeshMatNames.back() : "");
+                    }
+                }
+#endif
+
                 // Generate a Mesh Object or Prepare for an object to be created
                 if (algorithm::firstToken(curline) == "o" || algorithm::firstToken(curline) == "g" || curline[0] == 'g')
                 {
                     if (!listening)
                     {
                         listening = true;
+
+                        if (algorithm::firstToken(curline) == "o" || algorithm::firstToken(curline) == "g")
+                        {
+                            meshname = algorithm::tail(curline);
+                        }
+                        else
+                        {
+                            meshname = "unnamed";
+                        }
                     }
                     else
                     {
@@ -393,6 +472,7 @@ namespace objl
                         {
                             // Create Mesh
                             tempMesh = Mesh(Vertices, Indices);
+                            tempMesh.MeshName = meshname;
 
                             // Insert Mesh
                             LoadedMeshes.push_back(tempMesh);
@@ -400,8 +480,26 @@ namespace objl
                             // Cleanup
                             Vertices.clear();
                             Indices.clear();
+                            meshname.clear();
+
+                            meshname = algorithm::tail(curline);
+                        }
+                        else
+                        {
+                            if (algorithm::firstToken(curline) == "o" || algorithm::firstToken(curline) == "g")
+                            {
+                                meshname = algorithm::tail(curline);
+                            }
+                            else
+                            {
+                                meshname = "unnamed";
+                            }
                         }
                     }
+#ifdef OBJL_CONSOLE_OUTPUT
+                    std::cout << std::endl;
+                    outputIndicator = 0;
+#endif
                 }
                 // Generate a Vertex Position
                 if (algorithm::firstToken(curline) == "v")
@@ -471,7 +569,73 @@ namespace objl
 
                     }
                 }
+                // Get Mesh Material Name
+                if (algorithm::firstToken(curline) == "usemtl")
+                {
+                    MeshMatNames.push_back(algorithm::tail(curline));
+
+                    // Create new Mesh, if Material changes within a group
+                    if (!Indices.empty() && !Vertices.empty())
+                    {
+                        // Create Mesh
+                        tempMesh = Mesh(Vertices, Indices);
+                        tempMesh.MeshName = meshname;
+                        int i = 2;
+                        while(1) {
+                            tempMesh.MeshName = meshname + "_" + std::to_string(i);
+
+                            for (auto &m : LoadedMeshes)
+                                if (m.MeshName == tempMesh.MeshName)
+                                    continue;
+                            break;
+                        }
+
+                        // Insert Mesh
+                        LoadedMeshes.push_back(tempMesh);
+
+                        // Cleanup
+                        Vertices.clear();
+                        Indices.clear();
+                    }
+
+#ifdef OBJL_CONSOLE_OUTPUT
+                    outputIndicator = 0;
+#endif
+                }
+                // Load Materials
+                if (algorithm::firstToken(curline) == "mtllib")
+                {
+                    // Generate LoadedMaterial
+
+                    // Generate a path to the material file
+                    std::vector<std::string> temp;
+                    algorithm::split(Path, temp, "/");
+
+                    std::string pathtomat = "";
+
+                    if (temp.size() != 1)
+                    {
+                        for (int i = 0; i < temp.size() - 1; i++)
+                        {
+                            pathtomat += temp[i] + "/";
+                        }
+                    }
+
+
+                    pathtomat += algorithm::tail(curline);
+
+#ifdef OBJL_CONSOLE_OUTPUT
+                    std::cout << std::endl << "- find materials in: " << pathtomat << std::endl;
+#endif
+
+                    // Load Materials
+                     LoadMaterials(pathtomat); //TODO: enable to load materials
+                }
             }
+
+#ifdef OBJL_CONSOLE_OUTPUT
+            std::cout << std::endl;
+#endif
 
             // Deal with last mesh
 
@@ -479,12 +643,30 @@ namespace objl
             {
                 // Create Mesh
                 tempMesh = Mesh(Vertices, Indices);
+                tempMesh.MeshName = meshname;
 
                 // Insert Mesh
                 LoadedMeshes.push_back(tempMesh);
             }
 
             file.close();
+
+            // Set Materials for each Mesh
+            for (int i = 0; i < MeshMatNames.size(); i++)
+            {
+                std::string matname = MeshMatNames[i];
+
+                // Find corresponding material name in loaded materials
+                // when found copy material variables into mesh material
+                for (int j = 0; j < LoadedMaterials.size(); j++)
+                {
+                    if (LoadedMaterials[j].name == matname)
+                    {
+                        LoadedMeshes[i].MeshMaterial = LoadedMaterials[j];
+                        break;
+                    }
+                }
+            }
 
             if (LoadedMeshes.empty() && LoadedVertices.empty() && LoadedIndices.empty())
             {
@@ -502,6 +684,8 @@ namespace objl
         std::vector<Vertex> LoadedVertices;
         // Loaded Index Positions
         std::vector<unsigned int> LoadedIndices;
+        // Loaded Material Objects
+        std::vector<Material> LoadedMaterials;
 
     private:
         // Generate vertices from a list of positions,
@@ -782,6 +966,168 @@ namespace objl
                 if (tVerts.size() == 0)
                     break;
             }
+        }
+
+        // Load Materials from .mtl file
+        bool LoadMaterials(std::string path)
+        {
+            // If the file is not a material file return false
+            if (path.substr(path.size() - 4, path.size()) != ".mtl")
+                return false;
+
+            std::ifstream file(path);
+
+            // If the file is not found return false
+            if (!file.is_open())
+                return false;
+
+            Material tempMaterial;
+
+            bool listening = false;
+
+            // Go through each line looking for material variables
+            std::string curline;
+            while (std::getline(file, curline))
+            {
+                // new material and material name
+                if (algorithm::firstToken(curline) == "newmtl")
+                {
+                    if (!listening)
+                    {
+                        listening = true;
+
+                        if (curline.size() > 7)
+                        {
+                            tempMaterial.name = algorithm::tail(curline);
+                        }
+                        else
+                        {
+                            tempMaterial.name = "none";
+                        }
+                    }
+                    else
+                    {
+                        // Generate the material
+
+                        // Push Back loaded Material
+                        LoadedMaterials.push_back(tempMaterial);
+
+                        // Clear Loaded Material
+                        tempMaterial = Material();
+
+                        if (curline.size() > 7)
+                        {
+                            tempMaterial.name = algorithm::tail(curline);
+                        }
+                        else
+                        {
+                            tempMaterial.name = "none";
+                        }
+                    }
+                }
+                // Ambient Color
+                if (algorithm::firstToken(curline) == "Ka")
+                {
+                    std::vector<std::string> temp;
+                    algorithm::split(algorithm::tail(curline), temp, " ");
+
+                    if (temp.size() != 3)
+                        continue;
+
+                    tempMaterial.Ka.X = std::stof(temp[0]);
+                    tempMaterial.Ka.Y = std::stof(temp[1]);
+                    tempMaterial.Ka.Z = std::stof(temp[2]);
+                }
+                // Diffuse Color
+                if (algorithm::firstToken(curline) == "Kd")
+                {
+                    std::vector<std::string> temp;
+                    algorithm::split(algorithm::tail(curline), temp, " ");
+
+                    if (temp.size() != 3)
+                        continue;
+
+                    tempMaterial.Kd.X = std::stof(temp[0]);
+                    tempMaterial.Kd.Y = std::stof(temp[1]);
+                    tempMaterial.Kd.Z = std::stof(temp[2]);
+                }
+                // Specular Color
+                if (algorithm::firstToken(curline) == "Ks")
+                {
+                    std::vector<std::string> temp;
+                    algorithm::split(algorithm::tail(curline), temp, " ");
+
+                    if (temp.size() != 3)
+                        continue;
+
+                    tempMaterial.Ks.X = std::stof(temp[0]);
+                    tempMaterial.Ks.Y = std::stof(temp[1]);
+                    tempMaterial.Ks.Z = std::stof(temp[2]);
+                }
+                // Specular Exponent
+                if (algorithm::firstToken(curline) == "Ns")
+                {
+                    tempMaterial.Ns = std::stof(algorithm::tail(curline));
+                }
+                // Optical Density
+                if (algorithm::firstToken(curline) == "Ni")
+                {
+                    tempMaterial.Ni = std::stof(algorithm::tail(curline));
+                }
+                // Dissolve
+                if (algorithm::firstToken(curline) == "d")
+                {
+                    tempMaterial.d = std::stof(algorithm::tail(curline));
+                }
+                // Illumination
+                if (algorithm::firstToken(curline) == "illum")
+                {
+                    tempMaterial.illum = std::stoi(algorithm::tail(curline));
+                }
+                // Ambient Texture Map
+                if (algorithm::firstToken(curline) == "map_Ka")
+                {
+                    tempMaterial.map_Ka = algorithm::tail(curline);
+                }
+                // Diffuse Texture Map
+                if (algorithm::firstToken(curline) == "map_Kd")
+                {
+                    tempMaterial.map_Kd = algorithm::tail(curline);
+                }
+                // Specular Texture Map
+                if (algorithm::firstToken(curline) == "map_Ks")
+                {
+                    tempMaterial.map_Ks = algorithm::tail(curline);
+                }
+                // Specular Hightlight Map
+                if (algorithm::firstToken(curline) == "map_Ns")
+                {
+                    tempMaterial.map_Ns = algorithm::tail(curline);
+                }
+                // Alpha Texture Map
+                if (algorithm::firstToken(curline) == "map_d")
+                {
+                    tempMaterial.map_d = algorithm::tail(curline);
+                }
+                // Bump Map
+                if (algorithm::firstToken(curline) == "map_Bump" || algorithm::firstToken(curline) == "map_bump" || algorithm::firstToken(curline) == "bump")
+                {
+                    tempMaterial.map_bump = algorithm::tail(curline);
+                }
+            }
+
+            // Deal with last material
+
+            // Push Back loaded Material
+            LoadedMaterials.push_back(tempMaterial);
+
+            // Test to see if anything was loaded
+            // If not return false
+            if (LoadedMaterials.empty())
+                return false;
+                // If so return true
+            else
+                return true;
         }
     };
 }

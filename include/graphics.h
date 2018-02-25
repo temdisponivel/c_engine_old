@@ -52,20 +52,8 @@ typedef struct model {
     list<float> *colors;
     list<float> *tex_coords;
     list<float> *normals;
+    char *material_name;
 } model_t;
-
-typedef struct mesh {
-    uint vao_handle;
-
-    uint vertex_position_handle;
-    uint vertex_color_handle;
-    uint vertex_tex_coord_handle;
-    uint vertex_normal_handle;
-
-    uint indices_handle;
-
-    model_t *model;
-} mesh_t;
 
 enum TEXTURE_FORMAT {
     TEXTURE_RGB = GL_RGB,
@@ -260,10 +248,23 @@ typedef struct material {
     CULL_FUNCTIONS cull_func;
 } material_t;
 
+typedef struct mesh {
+    uint vao_handle;
+
+    uint vertex_position_handle;
+    uint vertex_color_handle;
+    uint vertex_tex_coord_handle;
+    uint vertex_normal_handle;
+
+    uint indices_handle;
+
+    model_t *model;
+    material_t *material;
+} mesh_t;
+
 typedef struct mesh_renderer {
     entity_t *entity;
-    material_t *material;
-    mesh_t *mesh;
+    list<mesh_t *> *meshs;
     bool should_be_drawn;
 
     uint layer_mask; //TODO: improve this
@@ -465,7 +466,7 @@ list<model_t *> *create_model_from_obj_file(const char *model_file_path);
 
 void destroy_model(model_t *model);
 
-mesh_t *create_mesh(model_t *model);
+mesh_t *create_mesh(model_t *model, material_t *material);
 
 void destroy_mesh(mesh_t *mesh);
 
@@ -554,17 +555,21 @@ void buff_uniform(uniform_t *uniform);
 
 void buff_uniforms(list<uniform_t *> *uniforms);
 
-mesh_renderer_t *create_mesh_renderer(material_t *material, mesh_t *mesh);
+mesh_renderer_t *create_mesh_renderer(mesh_t *mesh);
+
+mesh_renderer_t *create_mesh_renderer(list<mesh_t *> *meshs);
 
 void destroy_mesh_renderer(mesh_renderer_t *renderer);
+
+void draw_renderer(mesh_renderer_t *renderer);
 
 void prepare_to_draw(mesh_renderer_t *renderer);
 
 void use_material(material_t *material);
 
-void draw_renderer_with_material(mesh_renderer_t *renderer, material_t *material);
+void draw_mesh_with_material(mesh_t *mesh, material_t *material);
 
-void draw_renderer(mesh_renderer_t *renderer);
+void draw_mesh(mesh_t *renderer);
 
 void draw_scene();
 

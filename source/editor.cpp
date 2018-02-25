@@ -35,15 +35,15 @@ void setup_editor(camera_t *editor_camera) {
             {}
     );
 
-    model_t *quad = create_quad(glm::vec3(0, 0, 0), 500.f);
-    mesh_t *quad_mesh = create_mesh(quad);
-
     list<uniform_definition_t> *empty = create_list<uniform_definition_t>(1);
     material_t *material = create_material(program, empty);
     material->cull_func = CULL_DISABLED;
     destroy_list(empty);
 
-    mesh_renderer_t *renderer = create_mesh_renderer(material, quad_mesh);
+    model_t *quad = create_quad(glm::vec3(0, 0, 0), 500.f);
+    mesh_t *quad_mesh = create_mesh(quad, material);
+
+    mesh_renderer_t *renderer = create_mesh_renderer(quad_mesh);
     //look_at(renderer->entity->transform, world_up());
 
     state->scene_state.grid_quad = renderer;
@@ -52,6 +52,8 @@ void setup_editor(camera_t *editor_camera) {
 void release_editor() {
     mesh_renderer_t *grid_renderer = state->scene_state.grid_quad;
 
+    // TODO: properly clean this
+/*
     destroy_shader(grid_renderer->material->shader->vertex_shader);
     destroy_shader(grid_renderer->material->shader->fragment_shader);
     destroy_shader_program(grid_renderer->material->shader);
@@ -60,6 +62,7 @@ void release_editor() {
 
     destroy_model(grid_renderer->mesh->model);
     destroy_mesh(grid_renderer->mesh);
+*/
 
     destroy_mesh_renderer(grid_renderer);
 

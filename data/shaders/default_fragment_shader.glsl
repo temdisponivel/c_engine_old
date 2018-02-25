@@ -13,6 +13,6 @@ uniform vec2 offset;
 uniform vec2 wrap;
 
 void main(void) {
-    final_color = texture(my_texture, (uv * wrap) + offset);
+    final_color = texture(my_texture, uv);
     //final_color = vec4(1, 1, 1,1 );
 }
