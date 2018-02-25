@@ -113,6 +113,13 @@ void move_editor_camera(transform_t *trans, glm::vec3 cam_forward, glm::vec3 cam
 void update_editor_camera() {
     //TODO: CLEANUP
 
+    if (is_key_pressed(KEY_F12)) {
+        set_polygon_mode(POLYGON_LINE);
+    } else if (is_key_pressed(KEY_F11)){
+        set_polygon_mode(POLYGON_FILL);
+    }
+
+
     camera_t *cam = state->camera_state.editor_camera;
     transform_t *trans = cam->entity->transform;
 

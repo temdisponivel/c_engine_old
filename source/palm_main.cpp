@@ -9,15 +9,13 @@
 #include <editor.h>
 
 mesh_renderer_t *renderer;
-mesh_t *palm_mesh;
 shader_program_t *shader;
 material_t *material;
 texture_t *texture;
 camera_t *camera;
 
 void create_scene() {
-    model_t *model = create_model("data/models/palm1.obj");
-    palm_mesh = create_mesh(model);
+    list<model_t *> *model = create_model_from_obj_file("data/models/palm1.obj");
 
     char *vertex_shader_code = read_file_text("data/shaders/default_vertex_shader.glsl");
     shader_t vertex = create_shader(vertex_shader_code, VERTEX_SHADER);
@@ -67,9 +65,11 @@ void create_scene() {
 
     material = create_material(shader, uniforms);
 
-    renderer = create_mesh_renderer(material, palm_mesh);
-
-    renderer->entity->transform->position.z -= 10;
+    for (int i = 0; i < model->length; ++i) {
+        mesh_t *mesh = create_mesh(model->items[i]);
+        renderer = create_mesh_renderer(material, mesh);
+        renderer->entity->transform->position.z -= 10;
+    }
 
     camera = create_perspective_camera(45, get_screen_ratio(), 0.1f, 1000.f);
 }

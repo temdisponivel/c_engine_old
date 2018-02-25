@@ -2,6 +2,7 @@
 // Created by temdisponivel on 10/02/2018.
 //
 
+#include "obj_loader.h"
 #include "graphics.h"
 #include <log.h>
 #include <cstring>
@@ -262,58 +263,46 @@ model_t *create_model(
     return model;
 }
 
-model_t *create_model(const char *model_file_path) {
-    // TODO: optimize this!!!
-
-    list<float> *positions = create_list<float>(256);
-    list<float> *colors = create_list<float>(256);
-    list<float> *tex_coords = create_list<float>(256);
-    list<float> *normals = create_list<float>(256);
-    list<int> *indices = create_list<int>(256);
-
-    const char line_buffer[256] = {};
-
-    FILE *file = fopen(model_file_path, "rb");
-    ENSURE(file != null);
-
-    while (fscanf(file, "%s", line_buffer) != EOF) {
-        if (strcmp(line_buffer, "v") == 0) {
-            float x, y, z;
-            if (fscanf(file, "%f %f %f\n", &x, &y, &z)) {
-                add<float>(positions, x);
-                add<float>(positions, y);
-                add<float>(positions, z);
-            }
-        } else if (strcmp(line_buffer, "vc") == 0) {
-            float r, g, b;
-            if (fscanf(file, "%f %f %f\n", &r, &g, &b)) {
-                add<float>(colors, r);
-                add<float>(colors, g);
-                add<float>(colors, b);
-            }
-        } else if (strcmp(line_buffer, "vt") == 0) {
-            float x, y;
-            if (fscanf(file, "%f %f\n", &x, &y)) {
-                add<float>(tex_coords, x);
-                add<float>(tex_coords, y);
-            }
-        } else if (strcmp(line_buffer, "vn") == 0) {
-            float x, y, z;
-            if (fscanf(file, "%f %f %f\n", &x, &y, &z)) {
-                add<float>(normals, x);
-                add<float>(normals, y);
-                add<float>(normals, z);
-            }
-        } else if (strcmp(line_buffer, "vi") == 0) {
-            int indice;
-            if (fscanf(file, "%i\n", &indice)) {
-                add<int>(indices, indice);
-            }
-        }
+list<model_t *> *create_model_from_obj_file(const char *model_file_path) {
+    objl::Loader loader;
+    if (!loader.LoadFile(model_file_path)) {
+        ERROR("COULDN'T LOAD FILE!");
     }
-    fclose(file);
 
-    return create_model(positions, colors, tex_coords, normals, indices);
+    list<model_t *> *models = create_list<model_t *>(loader.LoadedMeshes.size());
+
+    for (int i = 0; i < loader.LoadedMeshes.size(); ++i) {
+        objl::Mesh mesh = loader.LoadedMeshes[i];
+
+        list<float> *positions = create_list<float>(mesh.Vertices.size() * 3);
+        list<float> *colors = create_list<float>(0); // Obj files have no color
+        list<float> *tex_coords = create_list<float>(mesh.Vertices.size() * 2);
+        list<float> *normals = create_list<float>(mesh.Vertices.size() * 3);
+        list<int> *indices = create_list<int>(mesh.Indices.size());
+
+        for (int j = 0; j < mesh.Vertices.size(); ++j) {
+            objl::Vertex vertex = mesh.Vertices[j];
+
+            add(positions, vertex.Position.X);
+            add(positions, vertex.Position.Y);
+            add(positions, vertex.Position.Z);
+
+            add(tex_coords, vertex.TextureCoordinate.X);
+            add(tex_coords, vertex.TextureCoordinate.Y);
+
+            add(normals, vertex.Normal.X);
+            add(normals, vertex.Normal.Y);
+            add(normals, vertex.Normal.Z);
+        }
+
+        for (int k = 0; k < mesh.Indices.size(); ++k) {
+            add(indices, (int) mesh.Indices[k]);
+        }
+
+        add(models, create_model(positions, colors, tex_coords, normals, indices));
+    }
+
+    return models;
 }
 
 void destroy_model(model_t *mesh) {
@@ -394,6 +383,7 @@ mesh_t *create_mesh(model_t *model) {
                 GL_STATIC_DRAW
         );
         CHECK_GL_ERROR();
+
 
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, HANDLE_NONE);
         CHECK_GL_ERROR();

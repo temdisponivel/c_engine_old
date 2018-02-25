@@ -453,7 +453,15 @@ texture_config_t get_default_texture_config();
 
 void buff_texture_config_to_gl(texture_t *texture);
 
-model_t *create_model(const char *model_file_path);
+model_t *create_model(
+        list<float> *positions,
+        list<float> *colors,
+        list<float> *tex_coords,
+        list<float> *normals,
+        list<int> *indices
+);
+
+list<model_t *> *create_model_from_obj_file(const char *model_file_path);
 
 void destroy_model(model_t *model);
 

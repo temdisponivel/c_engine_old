@@ -40,6 +40,9 @@ void remove(list<T> *list, T item);
 LIST_TEMPLATE
 bool null_or_empty(list<T> *list);
 
+LIST_TEMPLATE
+void clear(list <T> *list);
+
 // IMPLEMENTATION
 
 LIST_TEMPLATE
@@ -108,6 +111,18 @@ void remove(list <T> *list, T item) {
 LIST_TEMPLATE
 bool null_or_empty(list <T> *list) {
     return list == null || list->length == 0;
+}
+
+LIST_TEMPLATE
+void clear(list <T> *list) {
+    if (null_or_empty(list))
+        return;
+
+    for (int i = 0; i < list->length; ++i) {
+        list->items[i] = null;
+    }
+
+    list->length = 0;
 }
 
 #endif //CYNICAL_ENGINE_CPP_COLLECTIONS_H
