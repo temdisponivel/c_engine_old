@@ -1,9 +1,11 @@
+full obj file loading (including submesh, materials, faces, etc)
+    automatically create material when loading objs (or at least create a wrapper function that does this)
+    maybe make meshs have submeshs instead of loading multiple models/meshs from a obj file
+
 add audio
     add distance attenuation
     fix 3D problems
     add properties like duration, set position, etc
-
-full obj file loading (including submesh, materials, faces, etc)
 
 make a asset catalog to be used as a database in order to load each asset only once
 
