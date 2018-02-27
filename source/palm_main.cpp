@@ -11,7 +11,7 @@
 mesh_renderer_t *renderer;
 shader_program_t *shader;
 material_t *bark_material, *leaf_material;
-texture_t *bark_texture, *leafs_texture;
+texture_t *texture, *leafs_texture;
 camera_t *camera;
 
 void fill_uniforms(list<uniform_definition_t> *uniforms) {
@@ -35,7 +35,7 @@ void fill_uniforms(list<uniform_definition_t> *uniforms) {
 }
 
 void create_scene() {
-    list<model_t *> *model = create_model_from_obj_file("data/models/palm1.obj");
+    list<model_t *> *model = create_model_from_obj_file("data/models/PowerLoader.obj");
 
     char *vertex_shader_code = read_file_text("data/shaders/default_vertex_shader.glsl");
     shader_t vertex = create_shader(vertex_shader_code, VERTEX_SHADER);
@@ -53,44 +53,38 @@ void create_scene() {
             VERTEX_NORMAL_ATTRIBUTE_NAME
     );
 
-    image_t *image = create_image("data/textures/palm_bark.png");
-    bark_texture = create_texture(image, get_default_texture_config());
+    char* paths[] = {
+            "data/textures/powerloader/PowerLoaderGrate_D.tga",
+            "data/textures/powerloader/PowerLoaderLower_D.tga",
+            "data/textures/powerloader/PowerLoaderUpper_D.tga",
+    };
 
-    image = create_image("data/textures/palm leafs.png");
-    leafs_texture = create_texture(image, get_default_texture_config());
+    material_t *materials[3];
 
-    list<uniform_definition_t> *uniforms = create_list<uniform_definition_t>(5);
+    for (int j = 0; j < 3; ++j) {
+        char *path = paths[j];
 
-    uniform_definition_t bark_texture_uniform = {};
-    bark_texture_uniform.type = UNIFORM_TEXTURE2D;
-    bark_texture_uniform.name = (char *) "my_texture";
-    bark_texture_uniform.default_value.texture_value.texture_target_index = TEXTURE_0;
-    bark_texture_uniform.default_value.texture_value.texture = bark_texture;
-    add(uniforms, bark_texture_uniform);
+        image_t *image = create_image(path);
+        texture = create_texture(image, get_default_texture_config());
 
-    fill_uniforms(uniforms);
-    bark_material = create_material(shader, uniforms);
 
-    uniforms = create_list<uniform_definition_t>(5);
+        list<uniform_definition_t> *uniforms = create_list<uniform_definition_t>(5);
 
-    uniform_definition_t leafs_texture_uniform = {};
-    leafs_texture_uniform.type = UNIFORM_TEXTURE2D;
-    leafs_texture_uniform.name = (char *) "my_texture";
-    leafs_texture_uniform.default_value.texture_value.texture_target_index = TEXTURE_0;
-    leafs_texture_uniform.default_value.texture_value.texture = leafs_texture;
-    add(uniforms, leafs_texture_uniform);
+        uniform_definition_t bark_texture_uniform = {};
+        bark_texture_uniform.type = UNIFORM_TEXTURE2D;
+        bark_texture_uniform.name = (char *) "my_texture";
+        bark_texture_uniform.default_value.texture_value.texture_target_index = TEXTURE_0;
+        bark_texture_uniform.default_value.texture_value.texture = texture;
+        add(uniforms, bark_texture_uniform);
 
-    fill_uniforms(uniforms);
-    leaf_material = create_material(shader, uniforms);
+        fill_uniforms(uniforms);
 
+        materials[j] = create_material(shader, uniforms);
+    }
     list<mesh_t *> *meshs = create_list<mesh_t *>(model->length);
     for (int i = 0; i < model->length; ++i) {
         material_t *material;
-        if (strcmp(model->items[i]->material_name, "bark") == 0)
-            material = bark_material;
-        else
-            material = leaf_material;
-
+        material = materials[i % 3];
         mesh_t *mesh = create_mesh(model->items[i], material);
         add(meshs, mesh);
     }
@@ -99,9 +93,7 @@ void create_scene() {
     renderer->entity->transform->position.z -= 10;
 
     camera = create_perspective_camera(45, get_screen_ratio(), 0.1f, 1000.f);
-
-    glEnable (GL_BLEND); glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
+    camera->full_screen = true;
 }
 
 void update_palm() {

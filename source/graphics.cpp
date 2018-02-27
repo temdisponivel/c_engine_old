@@ -288,7 +288,7 @@ list<model_t *> *create_model_from_obj_file(const char *model_file_path) {
             add(positions, vertex.Position.Z);
 
             add(tex_coords, vertex.TextureCoordinate.X);
-            add(tex_coords, vertex.TextureCoordinate.Y);
+            add(tex_coords, 1 - vertex.TextureCoordinate.Y);
 
             add(normals, vertex.Normal.X);
             add(normals, vertex.Normal.Y);
